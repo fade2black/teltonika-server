@@ -2,6 +2,7 @@ CC := gcc
 
 #Folders
 SRCDIR := src
+INCDIR := include
 BUILDDIR := build
 TARGETDIR := bin
 
@@ -10,8 +11,8 @@ EXECUTABLE := ttserv
 TARGET := $(TARGETDIR)/$(EXECUTABLE)
 INSTALLBINDIR := /usr/local/bin
 
-INCFILES := $(shell find $(SRCDIR) -type f -name '*.h')
-OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(INCFILES:.h=.o))
+INCFILES := $(shell find $(INCDIR) -type f -name '*.h')
+OBJECTS := $(patsubst $(INCDIR)/%,$(BUILDDIR)/%,$(INCFILES:.h=.o))
 
 CFLAGS := -Wall `pkg-config --cflags glib-2.0`
 LDLIBS := `pkg-config --libs glib-2.0` -levent

@@ -10,18 +10,13 @@ EXECUTABLE := ttserv
 TARGET := $(TARGETDIR)/$(EXECUTABLE)
 INSTALLBINDIR := /usr/local/bin
 
-SRCEXT := c
-SOURCES := $(shell find $(SRCDIR) -type f -name "*.$(SRCEXT)")
-OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
-
-#Folder lists
-#INCDIRS  := $(shell find include/**/* -name '*.h' -exec dirname {} \; | sort | uniq)
-INCLIST := $(patsubst include/%,-I include/%,$(INCDIRS))
-BUILDLIST := $(patsubst include/%,$(BUILDDIR)/%,$(INCDIRS))
+INCDIR := include
+INCFILES := $(shell find $(INCDIR) -type f -name '*.h')
+OBJECTS := $(patsubst $(INCDIR)/%,$(BUILDDIR)/%,$(INCFILES:.h=.o))
 
 CFLAGS := -Wall `pkg-config --cflags glib-2.0`
 LDLIBS := `pkg-config --libs glib-2.0` -levent
-INC := -I include -I /usr/local/include
+INC := -I $(INCDIR) -I /usr/local/include
 
 
 $(TARGET): $(OBJECTS)
@@ -29,8 +24,8 @@ $(TARGET): $(OBJECTS)
 	@echo " Linking..."
 	@echo "  Linking $(TARGET)"; $(CC) $^ -o $(TARGET) $(LDLIBS)
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
-	@mkdir -p $(BUILDLIST)
+$(BUILDDIR)/%.o: $(SRCDIR)/%.c
+	@mkdir -p $(BUILDDIR)
 	@echo "Compiling $<..."; $(CC) $(CFLAGS) $(INC) -c -o $@ $<
 
 clean:

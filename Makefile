@@ -11,7 +11,7 @@ EXECUTABLE := ttserv
 TARGET := $(TARGETDIR)/$(EXECUTABLE)
 INSTALLBINDIR := /usr/local/bin
 
-SRCFILES := $(shell find $(SRCDIR) -type f -name '*.h')
+SRCFILES := $(shell find $(SRCDIR) -type f -name '*.c')
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SRCFILES:.h=.o))
 
 CFLAGS := -Wall `pkg-config --cflags glib-2.0`

@@ -1,5 +1,5 @@
-#include "../includes/hdrs.h"
-#include "glib.h"
+#include <glib.h>
+#include "hdrs.h"
 
 int main()
 {

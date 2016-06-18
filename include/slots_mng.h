@@ -1,7 +1,7 @@
 #ifndef _SLOTS_MANAGER_
 #define _SLOTS_MANAGER_
 
-#include "../includes/global_consts.h"
+#include "global_consts.h"
 
 static int empty_slots[MAXCLIENTS];
 static char empty_slot_occupied[MAXCLIENTS];

@@ -12,7 +12,7 @@ TARGET := $(TARGETDIR)/$(EXECUTABLE)
 INSTALLBINDIR := /usr/local/bin
 
 SRCFILES := $(shell find $(SRCDIR) -type f -name '*.c')
-OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SRCFILES:.h=.o))
+OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SRCFILES:.c=.o))
 
 CFLAGS := -Wall `pkg-config --cflags glib-2.0`
 LDLIBS := `pkg-config --libs glib-2.0` -levent

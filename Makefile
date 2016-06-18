@@ -1,26 +1,45 @@
-CC = gcc
-INCDIR = include
-OBJDIR = objs
+CC := gcc
 
-CFLAGS = -Wall `pkg-config --cflags glib-2.0`
-LDLIBS = `pkg-config --libs glib-2.0` -levent
+#Folders
+SRCDIR := src
+BUILDDIR := build
+TARGETDIR := bin
 
-DEPS = $(addprefix $(INCDIR)/, hdrs.h global_consts.h)
-OBJS = $(addprefix $(OBJDIR)/, error_functions.o get_num.o slots_mng.o logger.o)
+#Targets
+EXECUTABLE := ttserv
+TARGET := $(TARGETDIR)/$(EXECUTABLE)
+INSTALLBINDIR := /usr/local/bin
 
-EXECUTABLE = hello
+SRCEXT := c
+SOURCES := $(shell find $(SRCDIR) -type f -name "*.$(SRCEXT)")
+OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
 
-$(EXECUTABLE) : $(DEPS) $(OBJS)
-	$(CC) $(CFLAGS) -o $(EXECUTABLE) $(EXECUTABLE).c $(OBJS) $(LDLIBS)
+#Folder lists
+#INCDIRS  := $(shell find include/**/* -name '*.h' -exec dirname {} \; | sort | uniq)
+INCLIST := $(patsubst include/%,-I include/%,$(INCDIRS))
+BUILDLIST := $(patsubst include/%,$(BUILDDIR)/%,$(INCDIRS))
 
-$(OBJDIR)/error_functions.o : hdrs.h error_functions.*
-	$(CC) -Wall -c error_functions.c
-
-$(OBJDIR)/get_num.o : hdrs.h get_num.*
-	$(CC) -Wall -c get_num.c
+CFLAGS := -Wall `pkg-config --cflags glib-2.0`
+LDLIBS := `pkg-config --libs glib-2.0` -levent
+INC := -I include -I /usr/local/include
 
 
+$(TARGET): $(OBJECTS)
+	@mkdir -p $(TARGETDIR)
+	@echo " Linking..."
+	@echo "  Linking $(TARGET)"; $(CC) $^ -o $(TARGET) $(LDLIBS)
 
-.PHONY : clean
-clean :
-	rm -f $(OBJDIR)/*.o $(EXECUTABLE)
+$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
+	@mkdir -p $(BUILDLIST)
+	@echo "Compiling $<..."; $(CC) $(CFLAGS) $(INC) -c -o $@ $<
+
+clean:
+	@echo "Cleaning $(TARGET)..."; rm -r $(BUILDDIR) $(TARGET)
+
+install:
+	@echo "Installing $(EXECUTABLE)..."; cp $(TARGET) $(INSTALLBINDIR)
+
+distclean:
+	@echo "Removing $(EXECUTABLE)"; rm $(INSTALLBINDIR)/$(EXECUTABLE)
+
+.PHONY: clean

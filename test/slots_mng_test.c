@@ -1,11 +1,11 @@
-#include "../src/hdrs.h"
-#include "../src/slots_mng.h"
+#include "hdrs.h"
+#include "slots_mng.h"
 int main()
 {
   int i, slot;
 
   puts("Testing slots_mng.*...");
-  
+
   init_empty_slots();
   if (get_empty_slot() == MAXCLIENTS - 1)
      puts("Success");
@@ -22,7 +22,7 @@ int main()
 
   for(i = 0; i<MAXCLIENTS; i++)
     slot = get_empty_slot();
- 
+
   if (slot == 0)
      puts("Success");
   else
@@ -40,7 +40,7 @@ int main()
   get_empty_slot();
   put_empty_slot(1);
   put_empty_slot(1);
-  
+
   get_empty_slot();
   if (get_empty_slot() == 1)
      puts("Failure");

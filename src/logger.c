@@ -21,6 +21,7 @@ void logger_puts(char* info)
   strftime(tmbuf, 75,"%Y-%m-%d %T", localtime(&rawtime));
 
   fprintf(logger_fp, "%s:- %s\n", tmbuf, info);
+  fflush(logger_fp);
 }
 
 void logger_close()

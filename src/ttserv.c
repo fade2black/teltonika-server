@@ -1,8 +1,4 @@
-#include <glib.h>
-#include <event2/listener.h>
-#include <event2/bufferevent.h>
-#include <event2/buffer.h>
-#include <arpa/inet.h>
+
 #include "hdrs.h"
 
 static void
@@ -20,22 +16,41 @@ static void
 echo_event_cb(struct bufferevent *bev, short events, void *ctx)
 {
   if (events & BEV_EVENT_ERROR)
+  {
+    logger_puts("Error: bufferevent error");
     perror("Error from bufferevent");
-  if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)) {
-    bufferevent_free(bev);
   }
+  if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR))
+    bufferevent_free(bev);
 }
 
 static void
 accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx)
 {
   /* We got a new connection! Set up a bufferevent for it. */
+  #define BUF_SIZE 500
+  char log_mesg[BUF_SIZE]
+  char ip_address[INET_ADDRSTRLEN];
+  struct sockaddr adr;
+
+  struct sockaddr_in* saddr_in = (struct sockaddr_in *) address;
+
+  /* get peer's ip address*/
+  if (!inet_ntop(AF_INET, &(saddr_in->sin_addr), ip_address, INET_ADDRSTRLEN))
+  {
+    logger_puts("Error: inet_ntop failed");
+    errExit("inet_ntop");
+  }
+
+  snprintf(log_mesg, BUF_SIZE, "A new connection established from %s\n", ip_address);
+  logger_puts(log_mesg);
+
   struct event_base *base = evconnlistener_get_base(listener);
   struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
 
   bufferevent_setcb(bev, echo_read_cb, NULL, echo_event_cb, NULL);
 
-  bufferevent_enable(bev, EV_READ|EV_WRITE);
+  bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
 static void
@@ -61,12 +76,22 @@ main(int argc, char **argv)
   if (argc > 1)
     port = atoi(argv[1]);
 
+  logger_open("ttserv.log");
+
   if (port<=0 || port>65535)
+  {
+    logger_puts("ERROR: Invalid port");
+    logger_close();
     fatal("Invalid port");
+  }
 
   base = event_base_new();
   if (!base)
+  {
+    logger_puts("ERROR: Couldn't open event base");
+    logger_close();
     fatal("Couldn't open event base");
+  }
 
   /* Clear the sockaddr before using it, in case there are extra
    * platform-specific fields that can mess us up. */
@@ -82,11 +107,16 @@ main(int argc, char **argv)
     (struct sockaddr*)&sin, sizeof(sin));
 
   if (!listener)
+  {
+    logger_puts("ERROR: Couldn't create listener");
+    logger_close();
     fatal("Couldn't create listener");
+  }
 
   evconnlistener_set_error_cb(listener, accept_error_cb);
 
   event_base_dispatch(base);
 
+  logger_close();
   exit(EXIT_SUCCESS);
 }

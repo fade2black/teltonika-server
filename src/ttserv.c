@@ -30,7 +30,7 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
 {
   /* We got a new connection! Set up a bufferevent for it. */
   #define BUF_SIZE 500
-  char log_mesg[BUF_SIZE]
+  char log_mesg[BUF_SIZE];
   char ip_address[INET_ADDRSTRLEN];
   struct sockaddr adr;
 

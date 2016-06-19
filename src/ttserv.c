@@ -1,5 +1,6 @@
 
 #include "hdrs.h"
+#include "logger.h"
 
 static void
 echo_read_cb(struct bufferevent *bev, void *ctx)

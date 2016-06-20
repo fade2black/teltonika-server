@@ -33,7 +33,7 @@ void put_empty_slot(int i)
     fatal("put_empty_slot: stack overflow");
 
   if (!empty_slot_occupied[i])
-    return; /* since the slot already in the pool */
+    return; /* since the slot is already in the pool */
 
   empty_slots[es_index] = i;
   empty_slot_occupied[es_index] = 0;

@@ -1,17 +1,116 @@
 
 #include "hdrs.h"
 #include "logger.h"
+#include "slots_mng.h"
+#define BUF_SIZE 500
 
+static GHashTable* hash;
+typedef struct _client_info
+{
+  char ip_address[INET_ADDRSTRLEN];
+} client_info;
+
+typedef struct _broadcast_info
+{
+  char ip_address[INET_ADDRSTRLEN]; /* whos sends */
+  char mes[INPUT_BUFSIZE];
+} broadcast_info;
+
+
+static client_info clients[MAXCLIENTS];
+static input_buffer[INPUT_BUFSIZE];
+
+static void
+add_client(struct bufferevent *bev, char* ip_address)
+{
+  int empty_slot = get_empty_slot();
+  g_hash_table_insert(hash,  &bev, &empty_slot);
+  strcpy(clients[empty_slot].ip_address, ip_address);
+}
+
+static void
+broadcast(gpointer key, gpointer value, gpointer user_data)
+{
+  broadcast_info* bi = (broadcast_info*) user_data;
+  /*slot = *((int*) value); */
+
+  printf("%s said %s", bi.ip_address, bi.mes);
+}
+
+
+
+/***********************************************************/
 static void
 echo_read_cb(struct bufferevent *bev, void *ctx)
 {
   /* This callback is invoked when there is data to read on bev. */
   struct evbuffer *input = bufferevent_get_input(bev);
-  struct evbuffer *output = bufferevent_get_output(bev);
+  broadcast_info bi;
+  int slot;
 
-  /* Copy all the data from the input buffer to the output buffer. */
-  evbuffer_add_buffer(output, input);
+  if (evbuffer_get_length(input) > INPUT_BUFSIZE)
+  {
+    logger_puts("ERROR: Insufficient buffer size");
+    fatal("ERROR: Insufficient buffer size");
+  }
+
+  memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
+  if (bufferevent_read(bev, input_buffer, INPUT_BUFSIZE) == -1)
+  {
+    logger_puts("Couldn't read data from bufferevent");
+    fatal("Couldn't read data from bufferevent");
+  }
+
+  slot = *((int*) g_hash_table_lookup(hash, &bev));
+  strcpy(bi.ip_address, client_info[slot].ip_address);
+  strcpy(bi.mes, input_buffer);
+
+  g_hash_table_foreach(hash, broadcast, &bi);
 }
+
+static void
+accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx)
+{
+  /* We got a new connection! Set up a bufferevent for it. */
+  char log_mesg[BUF_SIZE];
+  char ip_address[INET_ADDRSTRLEN];
+
+  struct sockaddr_in* saddr_in = (struct sockaddr_in *) address;
+
+  /* get peer's ip address*/
+  if (!inet_ntop(AF_INET, &(saddr_in->sin_addr), ip_address, INET_ADDRSTRLEN))
+  {
+    logger_puts("Error: inet_ntop failed");
+    errExit("inet_ntop");
+  }
+
+  snprintf(log_mesg, BUF_SIZE, "A new connection established from %s", ip_address);
+  logger_puts(log_mesg);
+
+  struct event_base *base = evconnlistener_get_base(listener);
+  struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+
+  bufferevent_setcb(bev, echo_read_cb, NULL, echo_event_cb, NULL);
+
+  add_client(bev, ip_address);
+
+  bufferevent_enable(bev, EV_READ | EV_WRITE);
+}
+
+static void
+accept_error_cb(struct evconnlistener *listener, void *ctx)
+{
+  char log_mesg[BUF_SIZE];
+  struct event_base *base = evconnlistener_get_base(listener);
+  int err = EVUTIL_SOCKET_ERROR();
+
+  sprintf(log_mesg, "Got an error %d (%s) on the listener. Shutting down.\n", err, evutil_socket_error_to_string(err));
+  logger_puts(log_mesg);
+  logger_close();
+
+  event_base_loopexit(base, NULL);
+}
+
 
 static void
 echo_event_cb(struct bufferevent *bev, short events, void *ctx)
@@ -25,45 +124,6 @@ echo_event_cb(struct bufferevent *bev, short events, void *ctx)
     bufferevent_free(bev);
 }
 
-static void
-accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx)
-{
-  /* We got a new connection! Set up a bufferevent for it. */
-  #define BUF_SIZE 500
-  char log_mesg[BUF_SIZE];
-  char ip_address[INET_ADDRSTRLEN];
-  struct sockaddr adr;
-
-  struct sockaddr_in* saddr_in = (struct sockaddr_in *) address;
-
-  /* get peer's ip address*/
-  if (!inet_ntop(AF_INET, &(saddr_in->sin_addr), ip_address, INET_ADDRSTRLEN))
-  {
-    logger_puts("Error: inet_ntop failed");
-    errExit("inet_ntop");
-  }
-
-  snprintf(log_mesg, BUF_SIZE, "A new connection established from %s\n", ip_address);
-  logger_puts(log_mesg);
-
-  struct event_base *base = evconnlistener_get_base(listener);
-  struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-
-  bufferevent_setcb(bev, echo_read_cb, NULL, echo_event_cb, NULL);
-
-  bufferevent_enable(bev, EV_READ | EV_WRITE);
-}
-
-static void
-accept_error_cb(struct evconnlistener *listener, void *ctx)
-{
-  struct event_base *base = evconnlistener_get_base(listener);
-  int err = EVUTIL_SOCKET_ERROR();
-  fprintf(stderr, "Got an error %d (%s) on the listener. "
-          "Shutting down.\n", err, evutil_socket_error_to_string(err));
-
-  event_base_loopexit(base, NULL);
-}
 
 int
 main(int argc, char **argv)
@@ -71,6 +131,15 @@ main(int argc, char **argv)
   struct event_base *base;
   struct evconnlistener *listener;
   struct sockaddr_in sin;
+
+
+  GHashTable* hash = g_hash_table_new(g_int64_hash, g_int64_equal);
+  if (!hash)
+  {
+    logger_puts("ERROR: Could not create hash table");
+    logger_close();
+    fatal("ERROR: Could not create hash table")
+  }
 
   int port = 1975;
 

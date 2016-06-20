@@ -137,8 +137,8 @@ main(int argc, char **argv)
   struct sockaddr_in sin;
 
   init_empty_slots();
-  
-  GHashTable* hash = g_hash_table_new(g_int64_hash, g_int64_equal);
+
+  hash = g_hash_table_new(g_int64_hash, g_int64_equal);
   if (!hash)
   {
     logger_puts("ERROR: Could not create hash table");

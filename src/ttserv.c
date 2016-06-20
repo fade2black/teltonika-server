@@ -40,6 +40,20 @@ broadcast(gpointer key, gpointer value, gpointer user_data)
 
 
 /***********************************************************/
+
+static void
+echo_event_cb(struct bufferevent *bev, short events, void *ctx)
+{
+  if (events & BEV_EVENT_ERROR)
+  {
+    logger_puts("Error: bufferevent error");
+    perror("Error from bufferevent");
+  }
+  if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR))
+    bufferevent_free(bev);
+}
+
+
 static void
 echo_read_cb(struct bufferevent *bev, void *ctx)
 {
@@ -112,17 +126,7 @@ accept_error_cb(struct evconnlistener *listener, void *ctx)
 }
 
 
-static void
-echo_event_cb(struct bufferevent *bev, short events, void *ctx)
-{
-  if (events & BEV_EVENT_ERROR)
-  {
-    logger_puts("Error: bufferevent error");
-    perror("Error from bufferevent");
-  }
-  if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR))
-    bufferevent_free(bev);
-}
+
 
 
 int
@@ -138,7 +142,7 @@ main(int argc, char **argv)
   {
     logger_puts("ERROR: Could not create hash table");
     logger_close();
-    fatal("ERROR: Could not create hash table")
+    fatal("ERROR: Could not create hash table");
   }
 
   int port = 1975;

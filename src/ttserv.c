@@ -17,7 +17,7 @@ typedef struct _broadcast_info
 } broadcast_info;
 
 
-static char client_info clients[MAXCLIENTS];
+static client_info clients[MAXCLIENTS];
 static char input_buffer[INPUT_BUFSIZE];
 
 static void

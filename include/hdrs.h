@@ -15,8 +15,8 @@
 #include <event2/buffer.h>
 #include <arpa/inet.h>
 
+#include "global_consts.h"
 #include "get_num.h"
-
 #include "error_functions.h"
 
 

@@ -113,8 +113,7 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
     errExit("inet_ntop");
   }
 
-  snprintf(log_mesg, BUF_SIZE, "A new connection established from %s", ip_address);
-  logger_puts(log_mesg);
+  logger_puts("A new connection established from %s", ip_address);
 
   struct event_base *base = evconnlistener_get_base(listener);
   struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
@@ -207,6 +206,7 @@ main(int argc, char **argv)
 
   evconnlistener_set_error_cb(listener, accept_error_cb);
 
+  event_base_dump_events(base, stdout);
   event_base_dispatch(base);
 
   logger_close();

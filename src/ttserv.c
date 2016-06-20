@@ -21,11 +21,10 @@ static client_info clients[MAXCLIENTS];
 static char input_buffer[INPUT_BUFSIZE];
 
 static void
-add_client(struct bufferevent* bev, char* ip_address)
+add_client(struct bufferevent *bev, char* ip_address)
 {
-  void *adr = (void*) bev;
   int empty_slot = get_empty_slot();
-  g_hash_table_insert(hash,  &adr, &empty_slot);
+  g_hash_table_insert(hash,  GINT_TO_POINTER(bev), GINT_TO_POINTER(empty_slot));
   strcpy(clients[empty_slot].ip_address, ip_address);
 }
 
@@ -79,7 +78,7 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
   }
   printf("bufferevent_read is ok\n");
 
-  slot = *((int*) g_hash_table_lookup(hash, &bev));
+  slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
   printf("slot: %d\ncopying broadcast info...", slot);
   strcpy(bi.ip_address, clients[slot].ip_address);
   strcpy(bi.mes, input_buffer);

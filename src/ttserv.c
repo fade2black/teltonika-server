@@ -34,7 +34,7 @@ broadcast(gpointer key, gpointer value, gpointer user_data)
   broadcast_info* bi = (broadcast_info*) user_data;
   /*slot = *((int*) value); */
 
-  printf("%s said %s", bi.ip_address, bi.mes);
+  printf("%s said %s", bi->ip_address, bi->mes);
 }
 
 

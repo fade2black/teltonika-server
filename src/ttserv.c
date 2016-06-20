@@ -58,6 +58,7 @@ static void
 echo_read_cb(struct bufferevent *bev, void *ctx)
 {
   /* This callback is invoked when there is data to read on bev. */
+  printf("echo_read_cb\n");
   struct evbuffer *input = bufferevent_get_input(bev);
   broadcast_info bi;
   int slot;
@@ -67,6 +68,7 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
     logger_puts("ERROR: Insufficient buffer size");
     fatal("ERROR: Insufficient buffer size");
   }
+  printf("evbuffer_get_length is ok\n");
 
   memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
   if (bufferevent_read(bev, input_buffer, INPUT_BUFSIZE) == -1)
@@ -74,6 +76,7 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
     logger_puts("Couldn't read data from bufferevent");
     fatal("Couldn't read data from bufferevent");
   }
+  printf("bufferevent_read is ok\n");
 
   slot = *((int*) g_hash_table_lookup(hash, &bev));
   printf("slot: %d\ncopying broadcast info...", slot);

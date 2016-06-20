@@ -26,17 +26,16 @@ add_client(struct bufferevent *bev, char* ip_address)
   int empty_slot = get_empty_slot();
   g_hash_table_insert(hash,  GINT_TO_POINTER(bev), GINT_TO_POINTER(empty_slot));
   strcpy(clients[empty_slot].ip_address, ip_address);
+  printf("add_client: puts %s in the slot %d\n", clients[empty_slot].ip_address, slot);
 }
 
 static void
 broadcast(gpointer key, gpointer value, gpointer user_data)
 {
   broadcast_info* bi = (broadcast_info*) user_data;
-  /*slot = *((int*) value); */
 
   printf("%s said %s", bi->ip_address, bi->mes);
 }
-
 
 
 /***********************************************************/
@@ -68,7 +67,6 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
     logger_puts("ERROR: Insufficient buffer size");
     fatal("ERROR: Insufficient buffer size");
   }
-  printf("evbuffer_get_length is ok\n");
 
   memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
   if (bufferevent_read(bev, input_buffer, INPUT_BUFSIZE) == -1)
@@ -76,10 +74,9 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
     logger_puts("Couldn't read data from bufferevent");
     fatal("Couldn't read data from bufferevent");
   }
-  printf("bufferevent_read is ok\n");
 
   slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
-  printf("slot: %d\ncopying broadcast info...", slot);
+
   strcpy(bi.ip_address, clients[slot].ip_address);
   strcpy(bi.mes, input_buffer);
 

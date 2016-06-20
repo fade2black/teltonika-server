@@ -35,7 +35,7 @@ static void
 remove_client(struct bufferevent *bev)
 {
   int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
-  if (slot < 0 || slot > MAXCLIENT)
+  if (slot < 0 || slot > MAXCLIENTS)
   {
     logger_puts("ERROR: slot value (%d) out of range", slot);
     fatal("ERROR: slot value (%d) out of range");
@@ -103,7 +103,7 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
   printf("%s: %s", clients[slot].ip_address, input_buffer);
   /*g_hash_table_foreach(hash, broadcast, &bi);*/
   if (!strcmp(input_buffer, "exit"))
-    remove_client(bev)
+    remove_client(bev);
 }
 
 static void

@@ -83,7 +83,7 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
   input_buffer[strlen(input_buffer) - 2] = '\0';
   if (!strcmp(input_buffer, "goodbye"))
   {
-    g_hash_table_insert(hash,  GINT_TO_POINTER(bev));
+    g_hash_table_remove(hash,  GINT_TO_POINTER(bev));
     put_empty_slot(slot);
 
     bufferevent_disable(bev, EV_READ | EV_WRITE);

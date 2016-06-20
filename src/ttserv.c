@@ -26,7 +26,7 @@ add_client(struct bufferevent *bev, char* ip_address)
   int empty_slot = get_empty_slot();
   g_hash_table_insert(hash,  GINT_TO_POINTER(bev), GINT_TO_POINTER(empty_slot));
   strcpy(clients[empty_slot].ip_address, ip_address);
-  printf("add_client: puts %s in the slot %d\n   key: %d, val: %d\n",
+  printf("add_client: puts %s in the slot %d\n   key: %p, val: %p\n",
     clients[empty_slot].ip_address, empty_slot,
   GINT_TO_POINTER(bev),
   GINT_TO_POINTER(empty_slot));
@@ -78,7 +78,7 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
   }
 
   slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
-
+  printf("echo_read_cb: key: %p, returned slot (val:) %d", GINT_TO_POINTER(bev), slot);
   strcpy(bi.ip_address, clients[slot].ip_address);
   strcpy(bi.mes, input_buffer);
 

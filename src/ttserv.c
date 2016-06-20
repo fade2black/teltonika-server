@@ -78,7 +78,7 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
   }
 
   slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
-  printf("echo_read_cb: key: %p, returned slot (val:) %d", GINT_TO_POINTER(bev), slot);
+  printf("echo_read_cb: key: %p, returned slot (val:) %d\n", GINT_TO_POINTER(bev), slot);
   strcpy(bi.ip_address, clients[slot].ip_address);
   strcpy(bi.mes, input_buffer);
 
@@ -141,7 +141,7 @@ main(int argc, char **argv)
 
   init_empty_slots();
 
-  hash = g_hash_table_new(g_int64_hash, g_int64_equal);
+  hash = g_hash_table_new(g_direct_hash, g_direct_equal);
   if (!hash)
   {
     logger_puts("ERROR: Could not create hash table");

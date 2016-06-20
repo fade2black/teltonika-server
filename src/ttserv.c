@@ -4,11 +4,10 @@
 #include "slots_mng.h"
 #define BUF_SIZE 500
 
-struct event_base *base;
-static GHashTable* hash;
 typedef struct _client_info
 {
   char ip_address[INET_ADDRSTRLEN];
+  struct bufferevent *bev;
 } client_info;
 
 typedef struct _broadcast_info
@@ -18,8 +17,11 @@ typedef struct _broadcast_info
 } broadcast_info;
 
 
+struct event_base *base;
+static GHashTable* hash;
 static client_info clients[MAXCLIENTS];
 static char input_buffer[INPUT_BUFSIZE];
+
 
 static void
 add_client(struct bufferevent *bev, char* ip_address)
@@ -30,15 +32,38 @@ add_client(struct bufferevent *bev, char* ip_address)
 }
 
 static void
-broadcast(gpointer key, gpointer value, gpointer user_data)
+remove_client(struct bufferevent *bev)
 {
-  broadcast_info* bi = (broadcast_info*) user_data;
+  int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
+  if (slot < 0 || slot > MAXCLIENT)
+  {
+    logger_puts("ERROR: slot value (%d) out of range", slot);
+    fatal("ERROR: slot value (%d) out of range");
+  }
 
-  printf("%s said %s", bi->ip_address, bi->mes);
+  g_hash_table_remove(hash,  GINT_TO_POINTER(bev));
+  put_empty_slot(slot);
+
+  bufferevent_disable(bev, EV_READ | EV_WRITE);
+  bufferevent_setcb(bev, NULL, NULL, NULL, NULL);
+  bufferevent_free(bev);
 }
 
 
+/*static void
+broadcast(gpointer key, gpointer value, gpointer user_data)
+{
+  broadcast_info* bi = (broadcast_info*) user_data;
+  printf("%s said %s", bi->ip_address, bi->mes);
+}*/
+
+
 /***********************************************************/
+
+static void
+echo_write_cb(struct bufferevent *bev, short events, void *ctx)
+{
+}
 
 static void
 echo_event_cb(struct bufferevent *bev, short events, void *ctx)
@@ -58,7 +83,6 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
 {
   /* This callback is invoked when there is data to read on bev. */
   struct evbuffer *input = bufferevent_get_input(bev);
-  broadcast_info bi;
   int slot;
 
   if (evbuffer_get_length(input) > INPUT_BUFSIZE)
@@ -73,37 +97,20 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
     logger_puts("Couldn't read data from bufferevent");
     fatal("Couldn't read data from bufferevent");
   }
+  input_buffer[strlen(input_buffer) - 2] = '\0';
 
   slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
-  printf("echo_read_cb: key: %p, returned slot (val:) %d\n", GINT_TO_POINTER(bev), slot);
-  strcpy(bi.ip_address, clients[slot].ip_address);
-  strcpy(bi.mes, input_buffer);
-
-  g_hash_table_foreach(hash, broadcast, &bi);
-
-  input_buffer[strlen(input_buffer) - 2] = '\0';
-  if (!strcmp(input_buffer, "goodbye"))
-  {
-    g_hash_table_remove(hash,  GINT_TO_POINTER(bev));
-    put_empty_slot(slot);
-
-    bufferevent_disable(bev, EV_READ | EV_WRITE);
-    bufferevent_setcb(bev, NULL, NULL, NULL, NULL);
-    bufferevent_free(bev);
-    printf("echo_read_cb: slot %d returned\n", slot);
-
-  }
-
-  event_base_dump_events(base, stdout);
+  printf("%s: %s", clients[slot].ip_address, input_buffer);
+  /*g_hash_table_foreach(hash, broadcast, &bi);*/
+  if (!strcmp(input_buffer, "exit"))
+    remove_client(bev)
 }
 
 static void
 accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx)
 {
   /* We got a new connection! Set up a bufferevent for it. */
-  char log_mesg[BUF_SIZE];
   char ip_address[INET_ADDRSTRLEN];
-
   struct sockaddr_in* saddr_in = (struct sockaddr_in *) address;
 
   /* get peer's ip address*/
@@ -118,13 +125,11 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
   struct event_base *base = evconnlistener_get_base(listener);
   struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
 
-  bufferevent_setcb(bev, echo_read_cb, NULL, echo_event_cb, NULL);
+  bufferevent_setcb(bev, echo_read_cb, echo_write_cb, echo_event_cb, NULL);
 
   add_client(bev, ip_address);
 
   bufferevent_enable(bev, EV_READ | EV_WRITE);
-
-  event_base_dump_events(base, stdout);
 }
 
 static void
@@ -148,7 +153,6 @@ accept_error_cb(struct evconnlistener *listener, void *ctx)
 int
 main(int argc, char **argv)
 {
-
   struct evconnlistener *listener;
   struct sockaddr_in sin;
 
@@ -206,7 +210,6 @@ main(int argc, char **argv)
 
   evconnlistener_set_error_cb(listener, accept_error_cb);
 
-  event_base_dump_events(base, stdout);
   event_base_dispatch(base);
 
   logger_close();

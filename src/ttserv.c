@@ -21,10 +21,11 @@ static client_info clients[MAXCLIENTS];
 static char input_buffer[INPUT_BUFSIZE];
 
 static void
-add_client(struct bufferevent bev, char* ip_address)
+add_client(struct bufferevent* bev, char* ip_address)
 {
+  void *adr = (void*) bev;
   int empty_slot = get_empty_slot();
-  g_hash_table_insert(hash,  &bev, &empty_slot);
+  g_hash_table_insert(hash,  &adr, &empty_slot);
   strcpy(clients[empty_slot].ip_address, ip_address);
 }
 
@@ -110,7 +111,7 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
 
   bufferevent_setcb(bev, echo_read_cb, NULL, echo_event_cb, NULL);
 
-  add_client(*bev, ip_address);
+  add_client(bev, ip_address);
 
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }

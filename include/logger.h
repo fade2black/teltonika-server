@@ -1,8 +1,8 @@
 #ifndef LOGGER
 #define LOGGER
 
-static FILE *logger_fp;
-static time_t rawtime;
+FILE *logger_fp;
+time_t rawtime;
 
 void logger_open(char* filename);
 void logger_puts(char* info);

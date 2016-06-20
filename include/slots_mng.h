@@ -3,9 +3,9 @@
 
 #include "global_consts.h"
 
-static int empty_slots[MAXCLIENTS];
-static char empty_slot_occupied[MAXCLIENTS];
-static int es_index;
+int empty_slots[MAXCLIENTS];
+char empty_slot_occupied[MAXCLIENTS];
+int es_index;
 
 void init_empty_slots();
 int get_empty_slot();

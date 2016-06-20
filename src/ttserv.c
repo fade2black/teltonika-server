@@ -84,7 +84,8 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
 
   g_hash_table_foreach(hash, broadcast, &bi);
 
-  if (strcmp(input_buffer, "goodbye"))
+  input_buffer[strlen(input_buffer) - 2] = '\0';
+  if (!strcmp(input_buffer, "goodbye"))
   {
     put_empty_slot(slot);
     bufferevent_disable(bev, EV_READ | EV_WRITE);

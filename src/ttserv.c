@@ -4,6 +4,7 @@
 #include "slots_mng.h"
 #define BUF_SIZE 500
 
+struct event_base *base;
 static GHashTable* hash;
 typedef struct _client_info
 {
@@ -90,7 +91,10 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
     bufferevent_setcb(bev, NULL, NULL, NULL, NULL);
     bufferevent_free(bev);
     printf("echo_read_cb: slot %d returned\n", slot);
+
   }
+
+  event_base_dump_events(base, stdout);
 }
 
 static void
@@ -120,6 +124,8 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
   add_client(bev, ip_address);
 
   bufferevent_enable(bev, EV_READ | EV_WRITE);
+
+  event_base_dump_events(base, stdout);
 }
 
 static void
@@ -143,7 +149,7 @@ accept_error_cb(struct evconnlistener *listener, void *ctx)
 int
 main(int argc, char **argv)
 {
-  struct event_base *base;
+
   struct evconnlistener *listener;
   struct sockaddr_in sin;
 

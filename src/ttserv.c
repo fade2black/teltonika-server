@@ -76,6 +76,7 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
   }
 
   slot = *((int*) g_hash_table_lookup(hash, &bev));
+  printf("slot: %d\ncopying broadcast info...", slot);
   strcpy(bi.ip_address, clients[slot].ip_address);
   strcpy(bi.mes, input_buffer);
 

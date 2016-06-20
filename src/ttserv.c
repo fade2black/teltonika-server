@@ -26,7 +26,10 @@ add_client(struct bufferevent *bev, char* ip_address)
   int empty_slot = get_empty_slot();
   g_hash_table_insert(hash,  GINT_TO_POINTER(bev), GINT_TO_POINTER(empty_slot));
   strcpy(clients[empty_slot].ip_address, ip_address);
-  printf("add_client: puts %s in the slot %d\n", clients[empty_slot].ip_address, slot);
+  printf("add_client: puts %s in the slot %d\n   key: %d, val: %d\n",
+    clients[empty_slot].ip_address, empty_slot,
+  GINT_TO_POINTER(bev),
+  GINT_TO_POINTER(empty_slot));
 }
 
 static void
@@ -57,7 +60,6 @@ static void
 echo_read_cb(struct bufferevent *bev, void *ctx)
 {
   /* This callback is invoked when there is data to read on bev. */
-  printf("echo_read_cb\n");
   struct evbuffer *input = bufferevent_get_input(bev);
   broadcast_info bi;
   int slot;

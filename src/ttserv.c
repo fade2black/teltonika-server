@@ -61,7 +61,7 @@ broadcast(gpointer key, gpointer value, gpointer user_data)
 /***********************************************************/
 
 static void
-echo_write_cb(struct bufferevent *bev, short events, void *ctx)
+echo_write_cb(struct bufferevent *bev, void *ctx)
 {
 }
 
@@ -120,6 +120,7 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
     errExit("inet_ntop");
   }
 
+  printf("A new connection established from %s", ip_address);
   logger_puts("A new connection established from %s", ip_address);
 
   struct event_base *base = evconnlistener_get_base(listener);

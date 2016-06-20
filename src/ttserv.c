@@ -136,7 +136,8 @@ main(int argc, char **argv)
   struct evconnlistener *listener;
   struct sockaddr_in sin;
 
-
+  init_empty_slots();
+  
   GHashTable* hash = g_hash_table_new(g_int64_hash, g_int64_equal);
   if (!hash)
   {

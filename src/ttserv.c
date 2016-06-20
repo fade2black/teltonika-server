@@ -17,8 +17,8 @@ typedef struct _broadcast_info
 } broadcast_info;
 
 
-static client_info clients[MAXCLIENTS];
-static input_buffer[INPUT_BUFSIZE];
+static char client_info clients[MAXCLIENTS];
+static char input_buffer[INPUT_BUFSIZE];
 
 static void
 add_client(struct bufferevent *bev, char* ip_address)

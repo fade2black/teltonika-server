@@ -28,7 +28,7 @@ add_client(struct bufferevent *bev, char* ip_address)
 {
   int empty_slot = get_empty_slot();
   g_hash_table_insert(hash,  GINT_TO_POINTER(bev), GINT_TO_POINTER(empty_slot));
-  strcpy(clients[empty_slot].ip_address, ip_address);
+  /*strcpy(clients[empty_slot].ip_address, ip_address);*/
 }
 
 static void
@@ -89,11 +89,11 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
   }
   input_buffer[strlen(input_buffer) - 2] = '\0';
 
-  slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
-  printf("%s: %s", clients[slot].ip_address, input_buffer);
+  /*slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));*/
+  printf("DATA: %s", input_buffer);
   /*g_hash_table_foreach(hash, broadcast, &bi);*/
-  if (!strcmp(input_buffer, "exit"))
-    remove_client(bev);
+  /*if (!strcmp(input_buffer, "exit"))
+    remove_client(bev);*/
 }
 
 static void
@@ -116,9 +116,9 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
   struct event_base *base = evconnlistener_get_base(listener);
   struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
 
-  bufferevent_setcb(bev, echo_read_cb, echo_write_cb, echo_event_cb, NULL);
+  bufferevent_setcb(bev, echo_read_cb, NULL, echo_event_cb, NULL);
 
-  add_client(bev, ip_address);
+  /*add_client(bev, ip_address);*/
 
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }

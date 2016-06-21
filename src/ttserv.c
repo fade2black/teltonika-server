@@ -4,6 +4,11 @@
 #include "slots_mng.h"
 #define BUF_SIZE 500
 
+
+
+static char input_buffer[INPUT_BUFSIZE];
+/*
+
 typedef struct _client_info
 {
   char ip_address[INET_ADDRSTRLEN];
@@ -12,7 +17,7 @@ typedef struct _client_info
 
 typedef struct _broadcast_info
 {
-  char ip_address[INET_ADDRSTRLEN]; /* whos sends */
+  char ip_address[INET_ADDRSTRLEN];
   char mes[INPUT_BUFSIZE];
 } broadcast_info;
 
@@ -20,7 +25,7 @@ typedef struct _broadcast_info
 struct event_base *base;
 static GHashTable* hash;
 static client_info clients[MAXCLIENTS];
-static char input_buffer[INPUT_BUFSIZE];
+
 
 
 static void
@@ -28,8 +33,10 @@ add_client(struct bufferevent *bev, char* ip_address)
 {
   int empty_slot = get_empty_slot();
   g_hash_table_insert(hash,  GINT_TO_POINTER(bev), GINT_TO_POINTER(empty_slot));
-  /*strcpy(clients[empty_slot].ip_address, ip_address);*/
+  strcpy(clients[empty_slot].ip_address, ip_address);
 }
+
+
 
 static void
 remove_client(struct bufferevent *bev)
@@ -49,6 +56,7 @@ remove_client(struct bufferevent *bev)
   bufferevent_free(bev);
 }
 
+*/
 
 
 /***********************************************************/
@@ -130,8 +138,7 @@ accept_error_cb(struct evconnlistener *listener, void *ctx)
   struct event_base *base = evconnlistener_get_base(listener);
   int err = EVUTIL_SOCKET_ERROR();
 
-  sprintf(log_mesg, "Got an error %d (%s) on the listener. Shutting down.\n", err, evutil_socket_error_to_string(err));
-  logger_puts(log_mesg);
+  logger_puts("Got an error %d (%s) on the listener. Shutting down.\n", err, evutil_socket_error_to_string(err));
   logger_close();
 
   event_base_loopexit(base, NULL);

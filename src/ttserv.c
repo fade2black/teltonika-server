@@ -7,6 +7,8 @@
 
 
 static char input_buffer[INPUT_BUFSIZE];
+struct event_base *base;
+static GHashTable* hash;
 /*
 
 typedef struct _client_info
@@ -22,8 +24,7 @@ typedef struct _broadcast_info
 } broadcast_info;
 
 
-struct event_base *base;
-static GHashTable* hash;
+
 static client_info clients[MAXCLIENTS];
 
 
@@ -83,19 +84,21 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
   struct evbuffer *input = bufferevent_get_input(bev);
   int slot;
 
+  puts("New data");
+
   if (evbuffer_get_length(input) > INPUT_BUFSIZE)
   {
     logger_puts("ERROR: Insufficient buffer size");
     fatal("ERROR: Insufficient buffer size");
   }
 
-  memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
+  /*memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
   if (bufferevent_read(bev, input_buffer, INPUT_BUFSIZE) == -1)
   {
     logger_puts("Couldn't read data from bufferevent");
     fatal("Couldn't read data from bufferevent");
   }
-  input_buffer[strlen(input_buffer) - 2] = '\0';
+  input_buffer[strlen(input_buffer) - 2] = '\0';*/
 
   /*slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));*/
   printf("DATA: %s", input_buffer);
@@ -111,6 +114,7 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
   char ip_address[INET_ADDRSTRLEN];
   struct sockaddr_in* saddr_in = (struct sockaddr_in *) address;
 
+  puts("New connection");
   /* get peer's ip address*/
   if (!inet_ntop(AF_INET, &(saddr_in->sin_addr), ip_address, INET_ADDRSTRLEN))
   {

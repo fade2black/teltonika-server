@@ -84,21 +84,19 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
   struct evbuffer *input = bufferevent_get_input(bev);
   int slot;
 
-  puts("New data");
-
   if (evbuffer_get_length(input) > INPUT_BUFSIZE)
   {
     logger_puts("ERROR: Insufficient buffer size");
     fatal("ERROR: Insufficient buffer size");
   }
 
-  /*memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
+  memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
   if (bufferevent_read(bev, input_buffer, INPUT_BUFSIZE) == -1)
   {
     logger_puts("Couldn't read data from bufferevent");
     fatal("Couldn't read data from bufferevent");
   }
-  input_buffer[strlen(input_buffer) - 2] = '\0';*/
+  /*input_buffer[strlen(input_buffer) - 2] = '\0'; */
 
   /*slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));*/
   printf("DATA: %s", input_buffer);
@@ -114,7 +112,6 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
   char ip_address[INET_ADDRSTRLEN];
   struct sockaddr_in* saddr_in = (struct sockaddr_in *) address;
 
-  puts("New connection");
   /* get peer's ip address*/
   if (!inet_ntop(AF_INET, &(saddr_in->sin_addr), ip_address, INET_ADDRSTRLEN))
   {
@@ -142,7 +139,7 @@ accept_error_cb(struct evconnlistener *listener, void *ctx)
   struct event_base *base = evconnlistener_get_base(listener);
   int err = EVUTIL_SOCKET_ERROR();
 
-  logger_puts("Got an error %d (%s) on the listener. Shutting down.\n", err, evutil_socket_error_to_string(err));
+  logger_puts(log_mesg);
   logger_close();
 
   event_base_loopexit(base, NULL);

@@ -99,7 +99,7 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
   /*input_buffer[strlen(input_buffer) - 2] = '\0'; */
 
   /*slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));*/
-  printf("DATA: %s", input_buffer);
+  log_puts("DATA: %s", input_buffer);
   /*g_hash_table_foreach(hash, broadcast, &bi);*/
   /*if (!strcmp(input_buffer, "exit"))
     remove_client(bev);*/
@@ -119,7 +119,7 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
     errExit("inet_ntop");
   }
 
-  printf("A new connection established from %s", ip_address);
+  log_puts("A new connection established from %s", ip_address);
   /*logger_puts("A new connection established from %s", ip_address);*/
 
   struct event_base *base = evconnlistener_get_base(listener);
@@ -138,10 +138,7 @@ accept_error_cb(struct evconnlistener *listener, void *ctx)
   char log_mesg[BUF_SIZE];
   struct event_base *base = evconnlistener_get_base(listener);
   int err = EVUTIL_SOCKET_ERROR();
-
-  logger_puts(log_mesg);
-  logger_close();
-
+  logger_puts(stderr, "Got an error %d (%s) on the listener. Shutting down.\n", err, evutil_socket_error_to_string(err));
   event_base_loopexit(base, NULL);
 }
 

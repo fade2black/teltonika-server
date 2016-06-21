@@ -50,20 +50,10 @@ remove_client(struct bufferevent *bev)
 }
 
 
-/*static void
-broadcast(gpointer key, gpointer value, gpointer user_data)
-{
-  broadcast_info* bi = (broadcast_info*) user_data;
-  printf("%s said %s", bi->ip_address, bi->mes);
-}*/
-
 
 /***********************************************************/
 
-static void
-echo_write_cb(struct bufferevent *bev, void *ctx)
-{
-}
+
 
 static void
 echo_event_cb(struct bufferevent *bev, short events, void *ctx)
@@ -121,7 +111,7 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
   }
 
   printf("A new connection established from %s", ip_address);
-  logger_puts("A new connection established from %s", ip_address);
+  /*logger_puts("A new connection established from %s", ip_address);*/
 
   struct event_base *base = evconnlistener_get_base(listener);
   struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
@@ -199,7 +189,7 @@ main(int argc, char **argv)
   /* Listen on the given port. */
   sin.sin_port = htons(port);
 
-  listener = evconnlistener_new_bind(base, accept_conn_cb, NULL, LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE, -1,
+  listener = evconnlistener_new_bind(base, accept_conn_cb, NULL, LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE, -1,
     (struct sockaddr*)&sin, sizeof(sin));
 
   if (!listener)

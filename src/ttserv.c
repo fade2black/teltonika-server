@@ -103,14 +103,14 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   {
     process_imei(input_buffer);
     /* send 00/01*/
-    printf("Sending 'accept module'...");
+    puts("Sending 'accept module'...");
     if (bufferevent_write(bev, &accept, 1) == -1)
     {
       logger_puts("Couldn't write data to bufferevent");
       fatal("Couldn't write data to bufferevent");
     }
     clients[slot].state = WAIT_00_01_TOBE_SENT;
-    printf("in WAIT_00_01_TOBE_SENT state");
+    puts("in WAIT_00_01_TOBE_SENT state");
   }
   else if (clients[slot].state == WAIT_FOR_DATA_PACKET)
   {
@@ -122,8 +122,8 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
       logger_puts("Couldn't write data to bufferevent");
       fatal("Couldn't write data to bufferevent");
     }
-    clients[slot].state == WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
-    printf("in WAIT_NUM_RECIEVED_DATA_TOBE_SENT state");
+    clients[slot].state = WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
+    puts("in WAIT_NUM_RECIEVED_DATA_TOBE_SENT state");
   }
   else
   {
@@ -140,7 +140,7 @@ serv_write_cb(struct bufferevent *bev, void *ctx)
 
   if (clients[slot].state == WAIT_00_01_TOBE_SENT)
   {
-    clients[slot].state == WAIT_FOR_DATA_PACKET;
+    clients[slot].state = WAIT_FOR_DATA_PACKET;
     puts("in WAIT_FOR_DATA_PACKET state");
   }
   else if (clients[slot].state == WAIT_NUM_RECIEVED_DATA_TOBE_SENT)

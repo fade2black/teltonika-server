@@ -4,29 +4,31 @@
 #include "slots_mng.h"
 #define BUF_SIZE 500
 
-
+#define WAIT_FOR_IMEI 1
+#define WAIT_00_01_TOBE_SENT 2
+#define WAIT_FOR_DATA_PACKET 3
+#define WAIT_NUM_RECIEVED_DATA_TOBE_SENT 4
 
 static char input_buffer[INPUT_BUFSIZE];
 struct event_base *base;
 static GHashTable* hash;
-/*
+
+void process_imei(const char* imei)
+{
+  printf("processing imei %s...\n", imei);
+}
+void process_data_packet(const char* dp)
+{
+  printf("processing data packet %s...\n", dp);
+}
 
 typedef struct _client_info
 {
   char ip_address[INET_ADDRSTRLEN];
   struct bufferevent *bev;
+  char state;
 } client_info;
-
-typedef struct _broadcast_info
-{
-  char ip_address[INET_ADDRSTRLEN];
-  char mes[INPUT_BUFSIZE];
-} broadcast_info;
-
-
-
 static client_info clients[MAXCLIENTS];
-
 
 
 static void
@@ -35,9 +37,9 @@ add_client(struct bufferevent *bev, char* ip_address)
   int empty_slot = get_empty_slot();
   g_hash_table_insert(hash,  GINT_TO_POINTER(bev), GINT_TO_POINTER(empty_slot));
   strcpy(clients[empty_slot].ip_address, ip_address);
+  clients[empty_slot].state = WAIT_IMEI;
+  printf("in WAIT_IMEI state\n");
 }
-
-
 
 static void
 remove_client(struct bufferevent *bev)
@@ -55,34 +57,31 @@ remove_client(struct bufferevent *bev)
   bufferevent_disable(bev, EV_READ | EV_WRITE);
   bufferevent_setcb(bev, NULL, NULL, NULL, NULL);
   bufferevent_free(bev);
+
 }
-
-*/
-
 
 /***********************************************************/
 
-
-
 static void
-echo_event_cb(struct bufferevent *bev, short events, void *ctx)
+serv_event_cb(struct bufferevent *bev, short events, void *ctx)
 {
   if (events & BEV_EVENT_ERROR)
   {
     logger_puts("Error: bufferevent error");
-    perror("Error from bufferevent");
+    fatal("Error from bufferevent");
   }
   if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR))
     bufferevent_free(bev);
 }
 
-
+/****************************************************************************/
 static void
-echo_read_cb(struct bufferevent *bev, void *ctx)
+serv_read_cb(struct bufferevent *bev, void *ctx)
 {
+  char accept = 1;
   /* This callback is invoked when there is data to read on bev. */
-  struct evbuffer *input = bufferevent_get_input(bev);
-  int slot;
+  int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
+  assert(0 <= slot && slot < MAXCLIENTS);
 
   if (evbuffer_get_length(input) > INPUT_BUFSIZE)
   {
@@ -96,16 +95,63 @@ echo_read_cb(struct bufferevent *bev, void *ctx)
     logger_puts("Couldn't read data from bufferevent");
     fatal("Couldn't read data from bufferevent");
   }
-  input_buffer[strlen(input_buffer) - 2] = '\0';
 
-  /*slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));*/
-  printf("DATA: %s", input_buffer);
-  logger_puts("DATA: %s", input_buffer);
-  /*g_hash_table_foreach(hash, broadcast, &bi);*/
-  /*if (!strcmp(input_buffer, "exit"))
-    remove_client(bev);*/
+  if (clients[slot].state == WAIT_IMEI)
+  {
+    process_imei(input_buffer);
+    /* send 00/01*/
+    printf("Sending 'accept module'...");
+    if (bufferevent_write(bev, &accept, 1) == -1)
+    {
+      logger_puts("Couldn't write data to bufferevent");
+      fatal("Couldn't write data to bufferevent");
+    }
+    clients[slot].state == WAIT_00_01_TOBE_SENT;
+    printf("in WAIT_00_01_TOBE_SENT state");
+  }
+  else if (clients[slot].state == WAIT_FOR_DATA_PACKET)
+  {
+    process_data_packet(input_buffer);
+    /* send #data recieved */
+    accept = 17;
+    if (bufferevent_write(bev, &accept, 1) == -1)
+    {
+      logger_puts("Couldn't write data to bufferevent");
+      fatal("Couldn't write data to bufferevent");
+    }
+    clients[slot].state == WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
+    printf("in WAIT_NUM_RECIEVED_DATA_TOBE_SENT state");
+  }
+  else
+  {
+    fatal("unexpected state %d in serv_read_cb", clients[slot].state);
+  }
 }
 
+/****************************************************************************/
+static void
+serv_write_cb(struct bufferevent *bev, void *ctx)
+{
+  slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
+  assert(0 <= slot && slot < MAXCLIENTS);
+
+  if (clients[slot].state == WAIT_00_01_TOBE_SENT)
+  {
+    clients[slot].state == WAIT_FOR_DATA_PACKET;
+    puts("in WAIT_FOR_DATA_PACKET state");
+  }
+  else if (clients[slot].state == WAIT_NUM_RECIEVED_DATA_TOBE_SENT)
+  {
+    remove_client(bev);
+    puts("client removed");
+  }
+  else
+  {
+    fatal("unexpected state %d in serv_write_cb", clients[slot].state);
+  }
+}
+
+/****************************************************************************/
 static void
 accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx)
 {
@@ -126,13 +172,15 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
   struct event_base *base = evconnlistener_get_base(listener);
   struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
 
-  bufferevent_setcb(bev, echo_read_cb, NULL, echo_event_cb, NULL);
+  bufferevent_setcb(bev, serv_read_cb, serv_write_cb, serv_event_cb, NULL);
 
-  /*add_client(bev, ip_address);*/
+  add_client(bev, ip_address);
 
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
+
+/****************************************************************************/
 static void
 accept_error_cb(struct evconnlistener *listener, void *ctx)
 {
@@ -142,7 +190,7 @@ accept_error_cb(struct evconnlistener *listener, void *ctx)
   logger_puts("Got an error %d (%s) on the listener. Shutting down.\n", err, evutil_socket_error_to_string(err));
   event_base_loopexit(base, NULL);
 }
-
+/****************************************************************************/
 
 
 
@@ -208,6 +256,9 @@ main(int argc, char **argv)
   evconnlistener_set_error_cb(listener, accept_error_cb);
 
   event_base_dispatch(base);
+
+  evconnlistener_free(listener);
+  event_base_free(base);
 
   logger_close();
   exit(EXIT_SUCCESS);

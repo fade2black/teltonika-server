@@ -39,7 +39,7 @@ add_client(struct bufferevent *bev, char* ip_address)
   int empty_slot = get_empty_slot();
   g_hash_table_insert(hash,  GINT_TO_POINTER(bev), GINT_TO_POINTER(empty_slot));
   strcpy(clients[empty_slot].ip_address, ip_address);
-  clients[empty_slot].state = WAIT_IMEI;
+  clients[empty_slot].state = WAIT_FOR_IMEI;
   printf("in WAIT_IMEI state\n");
 }
 
@@ -109,7 +109,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
       logger_puts("Couldn't write data to bufferevent");
       fatal("Couldn't write data to bufferevent");
     }
-    clients[slot].state == WAIT_00_01_TOBE_SENT;
+    clients[slot].state = WAIT_00_01_TOBE_SENT;
     printf("in WAIT_00_01_TOBE_SENT state");
   }
   else if (clients[slot].state == WAIT_FOR_DATA_PACKET)

@@ -2,6 +2,8 @@
 #include "hdrs.h"
 #include "logger.h"
 #include "slots_mng.h"
+#include <assert.h>
+
 #define BUF_SIZE 500
 
 #define WAIT_FOR_IMEI 1
@@ -79,6 +81,7 @@ static void
 serv_read_cb(struct bufferevent *bev, void *ctx)
 {
   char accept = 1;
+  struct evbuffer *input = bufferevent_get_input(bev);
   /* This callback is invoked when there is data to read on bev. */
   int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
   assert(0 <= slot && slot < MAXCLIENTS);
@@ -96,7 +99,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
     fatal("Couldn't read data from bufferevent");
   }
 
-  if (clients[slot].state == WAIT_IMEI)
+  if (clients[slot].state == WAIT_FOR_IMEI)
   {
     process_imei(input_buffer);
     /* send 00/01*/
@@ -132,7 +135,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 static void
 serv_write_cb(struct bufferevent *bev, void *ctx)
 {
-  slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
+  int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
   assert(0 <= slot && slot < MAXCLIENTS);
 
   if (clients[slot].state == WAIT_00_01_TOBE_SENT)
@@ -184,7 +187,6 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
 static void
 accept_error_cb(struct evconnlistener *listener, void *ctx)
 {
-  char log_mesg[BUF_SIZE];
   struct event_base *base = evconnlistener_get_base(listener);
   int err = EVUTIL_SOCKET_ERROR();
   logger_puts("Got an error %d (%s) on the listener. Shutting down.\n", err, evutil_socket_error_to_string(err));

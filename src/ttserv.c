@@ -33,6 +33,7 @@ static client_info clients[MAXCLIENTS];
 int process_imei(const unsigned char* buf, size_t nbytes, int slot)
 {
   size_t length;
+  sise_t num_of_read_bytes;
 
   logger_puts("processing imei...");
 
@@ -138,7 +139,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 
   memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
   nbytes = bufferevent_read(bev, input_buffer, INPUT_BUFSIZE);
-  printf("%d bytes read\n", nbytes);
+  printf("%u bytes read\n", nbytes);
 
   if (nbytes == -1)
   {
@@ -169,7 +170,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
     process_data_packet(input_buffer);
     remove_client(bev);
     return;
-    
+
     /* send #data recieved */
     accept = 17;
     if (bufferevent_write(bev, &accept, 1) == -1)

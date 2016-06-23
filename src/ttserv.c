@@ -30,18 +30,17 @@ static client_info clients[MAXCLIENTS];
    if all bytes of imei are read then return TRUE
    else return FALSE
 */
-int process_imei(const unsigned char* buf, int slot)
+int process_imei(const unsigned char* buf, size_t nbytes, int slot)
 {
   size_t length;
-  size_t num_of_read_bytes;
 
   logger_puts("processing imei...");
 
   /* append bytes to imei */
-  g_byte_array_append(clients[slot].imei, (guint8*)buf, strlen(buf));
+  g_byte_array_append(clients[slot].imei, (guint8*)buf, nbytes);
   num_of_read_bytes = clients[slot].imei->len;
 
-  if (num_of_read_bytes > 2)
+  if (num_of_read_bytes > 1)
   {
     /* more than two bytes have already been read, so we can check
        whether or not we have read the entire message */
@@ -126,7 +125,8 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 {
   char accept = 1;
   struct evbuffer *input = bufferevent_get_input(bev);
-  /* This callback is invoked when there is data to read on bev. */
+  size_t nbytes;
+
   int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
   assert(0 <= slot && slot < MAXCLIENTS);
 
@@ -137,8 +137,10 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   }
 
   memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
+  nbytes = bufferevent_read(bev, input_buffer, INPUT_BUFSIZE);
+  printf("%d bytes read\n", nbytes);
 
-  if (bufferevent_read(bev, input_buffer, INPUT_BUFSIZE) == -1)
+  if (nbytes == -1)
   {
     logger_puts("ERROR: %s, '%s', line %d, couldn't read data from bufferevent", __FILE__, __func__, __LINE__);
     fatal("Couldn't read data from bufferevent in 'serv_read_cb'");
@@ -148,7 +150,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   {
     /* if process_imei returns TRUE then imei are read entirely,
        otherwise stay in the WAIT_FOR_IMEI state*/
-    if (process_imei(input_buffer, slot))
+    if (process_imei(input_buffer, nbytes, slot))
     {
       /* send 00/01*/
       logger_puts("Sending 'accept module'...");
@@ -163,7 +165,11 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   }
   else if (clients[slot].state == WAIT_FOR_DATA_PACKET)
   {
+
     process_data_packet(input_buffer);
+    remove_client(bev);
+    return;
+    
     /* send #data recieved */
     accept = 17;
     if (bufferevent_write(bev, &accept, 1) == -1)
@@ -200,7 +206,7 @@ static void
 accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx)
 {
   /* We got a new connection! Set up a bufferevent for it. */
-  logger_puts("A new connection established from %s", ip_address);
+  logger_puts("A new connection established from");
 
   struct event_base *base = evconnlistener_get_base(listener);
   struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);

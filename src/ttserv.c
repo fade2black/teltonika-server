@@ -11,29 +11,63 @@
 #define WAIT_FOR_DATA_PACKET 3
 #define WAIT_NUM_RECIEVED_DATA_TOBE_SENT 4
 
-static char input_buffer[INPUT_BUFSIZE];
+static unsigned char input_buffer[INPUT_BUFSIZE];
 struct event_base *base;
 static GHashTable* hash;
 
-void process_imei(const char* imei)
-{
-  logger_puts("processing imei %s...", imei);
-}
-
-void process_data_packet(const char* dp)
-{
-  logger_puts("processing data packet %s...", dp);
-}
 
 typedef struct _client_info
 {
   struct bufferevent *bev;
   char state;
-  int imei_length;
   GByteArray *imei;
 
 } client_info;
 static client_info clients[MAXCLIENTS];
+
+
+/*
+   if all bytes of imei are read then return TRUE
+   else return FALSE
+*/
+int process_imei(const unsigned char* buf, int slot)
+{
+  size_t length;
+  size_t num_of_read_bytes;
+
+  logger_puts("processing imei %s...", imei);
+
+  /* append bytes to imei */
+  g_byte_array_append(clients[slot].imei, (guint8*)buf, strlen(buf));
+  num_of_read_bytes = clients[slot].imei->len;
+
+  if (num_of_read_bytes > 2)
+  {
+    /* more than two bytes have already been read, so we can check
+       whether or not we have read the entire message */
+    length = clients[slot].imei->data[0];
+    length <<= 8;
+    length |= clients[slot].imei->data[1];
+
+    if ((num_of_read_bytes - 2) < length)
+      return FALSE;
+    else if ((num_of_read_bytes - 2) == length)
+      return TRUE;
+    else
+    {
+      logger_puts("ERROR: %s, '%s', line %d, number of bytes read is greater than indicated value in the IMEI message (first two bytes)", __FILE_, __func__, __LINE__);
+      fatal("ERROR: slot value (%d) out of range");
+    }
+  }
+  return FALSE;
+}
+
+void process_data_packet(const unsigned char* dp)
+{
+  logger_puts("processing data packet %s...", dp);
+}
+
+
 
 
 static void
@@ -56,7 +90,7 @@ remove_client(struct bufferevent *bev)
   int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
   if (slot < 0 || slot > MAXCLIENTS)
   {
-    logger_puts("ERROR: %s, '%s', line %d, slot value (%d) out of range 'remove_client'", __FILE_, __func__, __LINE__, slot);
+    logger_puts("ERROR: %s, '%s', line %d, slot value (%d) out of range", __FILE_, __func__, __LINE__, slot);
     fatal("ERROR: slot value (%d) out of range");
   }
 
@@ -103,6 +137,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   }
 
   memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
+
   if (bufferevent_read(bev, input_buffer, INPUT_BUFSIZE) == -1)
   {
     logger_puts("ERROR: %s, '%s', line %d, couldn't read data from bufferevent", __FILE_, __func__, __LINE__);
@@ -111,16 +146,20 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 
   if (clients[slot].state == WAIT_FOR_IMEI)
   {
-    process_imei(input_buffer);
-    /* send 00/01*/
-    logger_puts("Sending 'accept module'...");
-    if (bufferevent_write(bev, &accept, 1) == -1)
+    /* if process_imei returns TRUE then imei are read entirely,
+       otherwise stay in the WAIT_FOR_IMEI state*/
+    if (process_imei(input_buffer, slot))
     {
-      logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE_, __func__, __LINE__);
-      fatal("Couldn't write data to bufferevent");
+      /* send 00/01*/
+      logger_puts("Sending 'accept module'...");
+      if (bufferevent_write(bev, &accept, 1) == -1)
+      {
+        logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE_, __func__, __LINE__);
+        fatal("Couldn't write data to bufferevent");
+      }
+      clients[slot].state = WAIT_00_01_TOBE_SENT;
+      logger_puts("in WAIT_00_01_TOBE_SENT state");
     }
-    clients[slot].state = WAIT_00_01_TOBE_SENT;
-    logger_puts("in WAIT_00_01_TOBE_SENT state");
   }
   else if (clients[slot].state == WAIT_FOR_DATA_PACKET)
   {

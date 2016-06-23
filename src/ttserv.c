@@ -17,11 +17,11 @@ static GHashTable* hash;
 
 void process_imei(const char* imei)
 {
-  printf("processing imei %s...\n", imei);
+  logger_puts("processing imei %s...", imei);
 }
 void process_data_packet(const char* dp)
 {
-  printf("processing data packet %s...\n", dp);
+  logger_puts("processing data packet %s...", dp);
 }
 
 typedef struct _client_info
@@ -40,7 +40,7 @@ add_client(struct bufferevent *bev, char* ip_address)
   g_hash_table_insert(hash,  GINT_TO_POINTER(bev), GINT_TO_POINTER(empty_slot));
   strcpy(clients[empty_slot].ip_address, ip_address);
   clients[empty_slot].state = WAIT_FOR_IMEI;
-  printf("in WAIT_IMEI state\n");
+  logger_puts("in WAIT_IMEI state");
 }
 
 static void
@@ -59,7 +59,6 @@ remove_client(struct bufferevent *bev)
   bufferevent_disable(bev, EV_READ | EV_WRITE);
   bufferevent_setcb(bev, NULL, NULL, NULL, NULL);
   bufferevent_free(bev);
-
 }
 
 /***********************************************************/
@@ -103,7 +102,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   {
     process_imei(input_buffer);
     /* send 00/01*/
-    puts("Sending 'accept module'...");
+    logger_puts("Sending 'accept module'...");
     if (bufferevent_write(bev, &accept, 1) == -1)
     {
       logger_puts("Couldn't write data to bufferevent");
@@ -123,11 +122,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
       fatal("Couldn't write data to bufferevent");
     }
     clients[slot].state = WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
-    puts("in WAIT_NUM_RECIEVED_DATA_TOBE_SENT state");
-  }
-  else
-  {
-    fatal("unexpected state %d in serv_read_cb", clients[slot].state);
+    logger_puts("in WAIT_NUM_RECIEVED_DATA_TOBE_SENT state");
   }
 }
 
@@ -148,10 +143,6 @@ serv_write_cb(struct bufferevent *bev, void *ctx)
     remove_client(bev);
     puts("client removed");
   }
-  else
-  {
-    fatal("unexpected state %d in serv_write_cb", clients[slot].state);
-  }
 }
 
 /****************************************************************************/
@@ -169,7 +160,6 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
     errExit("inet_ntop");
   }
 
-  printf("A new connection established from %s\n", ip_address);
   logger_puts("A new connection established from %s", ip_address);
 
   struct event_base *base = evconnlistener_get_base(listener);
@@ -179,7 +169,7 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
 
   add_client(bev, ip_address);
 
-  bufferevent_enable(bev, EV_READ | EV_WRITE);
+  bufferevent_enable(bev, EV_READ);
 }
 
 

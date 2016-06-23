@@ -19,6 +19,7 @@ void process_imei(const char* imei)
 {
   logger_puts("processing imei %s...", imei);
 }
+
 void process_data_packet(const char* dp)
 {
   logger_puts("processing data packet %s...", dp);
@@ -26,20 +27,26 @@ void process_data_packet(const char* dp)
 
 typedef struct _client_info
 {
-  char ip_address[INET_ADDRSTRLEN];
   struct bufferevent *bev;
   char state;
+  int imei_length;
+  GByteArray *imei;
+
 } client_info;
 static client_info clients[MAXCLIENTS];
 
 
 static void
-add_client(struct bufferevent *bev, char* ip_address)
+add_client(struct bufferevent *bev)
 {
   int empty_slot = get_empty_slot();
   g_hash_table_insert(hash,  GINT_TO_POINTER(bev), GINT_TO_POINTER(empty_slot));
-  strcpy(clients[empty_slot].ip_address, ip_address);
+
   clients[empty_slot].state = WAIT_FOR_IMEI;
+  /* allocate memmory */
+  clients[empty_slot].imei = g_byte_array_new();
+  assert(clients[empty_slot].imei != NULL);
+
   logger_puts("in WAIT_IMEI state");
 }
 
@@ -49,9 +56,13 @@ remove_client(struct bufferevent *bev)
   int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
   if (slot < 0 || slot > MAXCLIENTS)
   {
-    logger_puts("ERROR: slot value (%d) out of range", slot);
+    logger_puts("ERROR: %s, '%s', line %d, slot value (%d) out of range 'remove_client'", __FILE_, __func__, __LINE__, slot);
     fatal("ERROR: slot value (%d) out of range");
   }
+
+  /* free allocated memories */
+  g_byte_array_free (clients[slot].imei, TRUE);
+  /*******************************************/
 
   g_hash_table_remove(hash,  GINT_TO_POINTER(bev));
   put_empty_slot(slot);
@@ -68,7 +79,7 @@ serv_event_cb(struct bufferevent *bev, short events, void *ctx)
 {
   if (events & BEV_EVENT_ERROR)
   {
-    logger_puts("Error: bufferevent error");
+    logger_puts("ERROR: %s, '%s', line %d, bufferevent error", __FILE_, __func__, __LINE__);
     fatal("Error from bufferevent");
   }
   if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR))
@@ -87,15 +98,15 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 
   if (evbuffer_get_length(input) > INPUT_BUFSIZE)
   {
-    logger_puts("ERROR: Insufficient buffer size");
+    logger_puts("ERROR: %s, '%s', line %d, insufficient buffer size", __FILE_, __func__, __LINE__);
     fatal("ERROR: Insufficient buffer size");
   }
 
   memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
   if (bufferevent_read(bev, input_buffer, INPUT_BUFSIZE) == -1)
   {
-    logger_puts("Couldn't read data from bufferevent");
-    fatal("Couldn't read data from bufferevent");
+    logger_puts("ERROR: %s, '%s', line %d, couldn't read data from bufferevent", __FILE_, __func__, __LINE__);
+    fatal("Couldn't read data from bufferevent in 'serv_read_cb'");
   }
 
   if (clients[slot].state == WAIT_FOR_IMEI)
@@ -105,11 +116,11 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
     logger_puts("Sending 'accept module'...");
     if (bufferevent_write(bev, &accept, 1) == -1)
     {
-      logger_puts("Couldn't write data to bufferevent");
+      logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE_, __func__, __LINE__);
       fatal("Couldn't write data to bufferevent");
     }
     clients[slot].state = WAIT_00_01_TOBE_SENT;
-    puts("in WAIT_00_01_TOBE_SENT state");
+    logger_puts("in WAIT_00_01_TOBE_SENT state");
   }
   else if (clients[slot].state == WAIT_FOR_DATA_PACKET)
   {
@@ -118,7 +129,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
     accept = 17;
     if (bufferevent_write(bev, &accept, 1) == -1)
     {
-      logger_puts("Couldn't write data to bufferevent");
+      logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE_, __func__, __LINE__);
       fatal("Couldn't write data to bufferevent");
     }
     clients[slot].state = WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
@@ -136,12 +147,12 @@ serv_write_cb(struct bufferevent *bev, void *ctx)
   if (clients[slot].state == WAIT_00_01_TOBE_SENT)
   {
     clients[slot].state = WAIT_FOR_DATA_PACKET;
-    puts("in WAIT_FOR_DATA_PACKET state");
+    logger_puts("in WAIT_FOR_DATA_PACKET state");
   }
   else if (clients[slot].state == WAIT_NUM_RECIEVED_DATA_TOBE_SENT)
   {
     remove_client(bev);
-    puts("client removed");
+    logger_puts("client removed");
   }
 }
 
@@ -150,16 +161,6 @@ static void
 accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx)
 {
   /* We got a new connection! Set up a bufferevent for it. */
-  char ip_address[INET_ADDRSTRLEN];
-  struct sockaddr_in* saddr_in = (struct sockaddr_in *) address;
-
-  /* get peer's ip address*/
-  if (!inet_ntop(AF_INET, &(saddr_in->sin_addr), ip_address, INET_ADDRSTRLEN))
-  {
-    logger_puts("Error: inet_ntop failed");
-    errExit("inet_ntop");
-  }
-
   logger_puts("A new connection established from %s", ip_address);
 
   struct event_base *base = evconnlistener_get_base(listener);
@@ -167,7 +168,7 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
 
   bufferevent_setcb(bev, serv_read_cb, serv_write_cb, serv_event_cb, NULL);
 
-  add_client(bev, ip_address);
+  add_client(bev);
 
   bufferevent_enable(bev, EV_READ);
 }
@@ -198,7 +199,7 @@ main(int argc, char **argv)
   hash = g_hash_table_new(g_direct_hash, g_direct_equal);
   if (!hash)
   {
-    logger_puts("ERROR: Could not create hash table");
+    logger_puts("ERROR: %s, '%s', line %d, could not create hash table", __FILE_, __func__, __LINE__);
     logger_close();
     fatal("ERROR: Could not create hash table");
   }
@@ -212,7 +213,7 @@ main(int argc, char **argv)
 
   if (port<=0 || port>65535)
   {
-    logger_puts("ERROR: Invalid port");
+    logger_puts("ERROR: %s, '%s', line %d, invalid port", __FILE_, __func__, __LINE__);
     logger_close();
     fatal("Invalid port");
   }
@@ -220,7 +221,7 @@ main(int argc, char **argv)
   base = event_base_new();
   if (!base)
   {
-    logger_puts("ERROR: Couldn't open event base");
+    logger_puts("ERROR: %s, '%s', line %d, couldn't open event base", __FILE_, __func__, __LINE__);
     logger_close();
     fatal("Couldn't open event base");
   }
@@ -240,7 +241,7 @@ main(int argc, char **argv)
 
   if (!listener)
   {
-    logger_puts("ERROR: Couldn't create listener");
+    logger_puts("ERROR: %s, '%s', line %d, couldn't create listener", __FILE_, __func__, __LINE__);
     logger_close();
     fatal("Couldn't create listener");
   }

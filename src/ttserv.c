@@ -35,7 +35,7 @@ int process_imei(const unsigned char* buf, int slot)
   size_t length;
   size_t num_of_read_bytes;
 
-  logger_puts("processing imei %s...", imei);
+  logger_puts("processing imei...");
 
   /* append bytes to imei */
   g_byte_array_append(clients[slot].imei, (guint8*)buf, strlen(buf));
@@ -55,7 +55,7 @@ int process_imei(const unsigned char* buf, int slot)
       return TRUE;
     else
     {
-      logger_puts("ERROR: %s, '%s', line %d, number of bytes read is greater than indicated value in the IMEI message (first two bytes)", __FILE_, __func__, __LINE__);
+      logger_puts("ERROR: %s, '%s', line %d, number of bytes read is greater than indicated value in the IMEI message (first two bytes)", __FILE__, __func__, __LINE__);
       fatal("ERROR: slot value (%d) out of range");
     }
   }
@@ -90,7 +90,7 @@ remove_client(struct bufferevent *bev)
   int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
   if (slot < 0 || slot > MAXCLIENTS)
   {
-    logger_puts("ERROR: %s, '%s', line %d, slot value (%d) out of range", __FILE_, __func__, __LINE__, slot);
+    logger_puts("ERROR: %s, '%s', line %d, slot value (%d) out of range", __FILE__, __func__, __LINE__, slot);
     fatal("ERROR: slot value (%d) out of range");
   }
 
@@ -113,7 +113,7 @@ serv_event_cb(struct bufferevent *bev, short events, void *ctx)
 {
   if (events & BEV_EVENT_ERROR)
   {
-    logger_puts("ERROR: %s, '%s', line %d, bufferevent error", __FILE_, __func__, __LINE__);
+    logger_puts("ERROR: %s, '%s', line %d, bufferevent error", __FILE__, __func__, __LINE__);
     fatal("Error from bufferevent");
   }
   if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR))
@@ -132,7 +132,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 
   if (evbuffer_get_length(input) > INPUT_BUFSIZE)
   {
-    logger_puts("ERROR: %s, '%s', line %d, insufficient buffer size", __FILE_, __func__, __LINE__);
+    logger_puts("ERROR: %s, '%s', line %d, insufficient buffer size", __FILE__, __func__, __LINE__);
     fatal("ERROR: Insufficient buffer size");
   }
 
@@ -140,7 +140,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 
   if (bufferevent_read(bev, input_buffer, INPUT_BUFSIZE) == -1)
   {
-    logger_puts("ERROR: %s, '%s', line %d, couldn't read data from bufferevent", __FILE_, __func__, __LINE__);
+    logger_puts("ERROR: %s, '%s', line %d, couldn't read data from bufferevent", __FILE__, __func__, __LINE__);
     fatal("Couldn't read data from bufferevent in 'serv_read_cb'");
   }
 
@@ -154,7 +154,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
       logger_puts("Sending 'accept module'...");
       if (bufferevent_write(bev, &accept, 1) == -1)
       {
-        logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE_, __func__, __LINE__);
+        logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
         fatal("Couldn't write data to bufferevent");
       }
       clients[slot].state = WAIT_00_01_TOBE_SENT;
@@ -168,7 +168,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
     accept = 17;
     if (bufferevent_write(bev, &accept, 1) == -1)
     {
-      logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE_, __func__, __LINE__);
+      logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
       fatal("Couldn't write data to bufferevent");
     }
     clients[slot].state = WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
@@ -238,7 +238,7 @@ main(int argc, char **argv)
   hash = g_hash_table_new(g_direct_hash, g_direct_equal);
   if (!hash)
   {
-    logger_puts("ERROR: %s, '%s', line %d, could not create hash table", __FILE_, __func__, __LINE__);
+    logger_puts("ERROR: %s, '%s', line %d, could not create hash table", __FILE__, __func__, __LINE__);
     logger_close();
     fatal("ERROR: Could not create hash table");
   }
@@ -252,7 +252,7 @@ main(int argc, char **argv)
 
   if (port<=0 || port>65535)
   {
-    logger_puts("ERROR: %s, '%s', line %d, invalid port", __FILE_, __func__, __LINE__);
+    logger_puts("ERROR: %s, '%s', line %d, invalid port", __FILE__, __func__, __LINE__);
     logger_close();
     fatal("Invalid port");
   }
@@ -260,7 +260,7 @@ main(int argc, char **argv)
   base = event_base_new();
   if (!base)
   {
-    logger_puts("ERROR: %s, '%s', line %d, couldn't open event base", __FILE_, __func__, __LINE__);
+    logger_puts("ERROR: %s, '%s', line %d, couldn't open event base", __FILE__, __func__, __LINE__);
     logger_close();
     fatal("Couldn't open event base");
   }
@@ -280,7 +280,7 @@ main(int argc, char **argv)
 
   if (!listener)
   {
-    logger_puts("ERROR: %s, '%s', line %d, couldn't create listener", __FILE_, __func__, __LINE__);
+    logger_puts("ERROR: %s, '%s', line %d, couldn't create listener", __FILE__, __func__, __LINE__);
     logger_close();
     fatal("Couldn't create listener");
   }

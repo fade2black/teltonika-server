@@ -26,19 +26,33 @@ typedef struct _client_info
 static client_info clients[MAXCLIENTS];
 
 
-/*
-   if all bytes of imei are read then return TRUE
-   else return FALSE
-*/
-int process_imei(const unsigned char* buf, size_t nbytes, int slot)
+
+/* for diagnostics purpose */
+void bytes_to_string(unsigned char* bytes, size_t n, char* buffer)
+{
+  int i, j = 0;
+  char buf[3];
+  for(i=0; i < n; i++)
+  {
+    sprintf(buf, "%02x", bytes[i]);
+    buffer[j] = buf[0];
+    buffer[j+1] = buf[1];
+    j+=2;
+  }
+  buffer[j] = 0;
+}
+
+/* if all bytes of imei are read then return TRUE
+   else return FALSE */
+int process_imei(const unsigned char* data, size_t nbytes, int slot)
 {
   size_t length;
-  sise_t num_of_read_bytes;
+  size_t num_of_read_bytes;
 
   logger_puts("processing imei...");
 
   /* append bytes to imei */
-  g_byte_array_append(clients[slot].imei, (guint8*)buf, nbytes);
+  g_byte_array_append(clients[slot].imei, (guint8*)data, nbytes);
   num_of_read_bytes = clients[slot].imei->len;
 
   if (num_of_read_bytes > 1)
@@ -62,9 +76,16 @@ int process_imei(const unsigned char* buf, size_t nbytes, int slot)
   return FALSE;
 }
 
-void process_data_packet(const unsigned char* dp)
+void process_data_packet(const unsigned char* data, size_t nbytes, int slot)
 {
-  logger_puts("processing data packet %s...", dp);
+  char buffer[3000];
+  logger_puts("processing data packet");
+
+  bytes_to_string(clients[slot].imei->data, clients[slot].imei->len, buffer);
+  logger_puts(" IMEI: %s", buffer);
+
+  bytes_to_string(data, nbytes, buffer);
+  logger_puts(" Data packet: %s", buffer);
 }
 
 
@@ -139,7 +160,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 
   memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
   nbytes = bufferevent_read(bev, input_buffer, INPUT_BUFSIZE);
-  printf("%u bytes read\n", nbytes);
+  printf("%zu bytes read\n", nbytes);
 
   if (nbytes == -1)
   {
@@ -166,8 +187,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   }
   else if (clients[slot].state == WAIT_FOR_DATA_PACKET)
   {
-
-    process_data_packet(input_buffer);
+    process_data_packet(input_buffer, nbytes, slot);
     remove_client(bev);
     return;
 

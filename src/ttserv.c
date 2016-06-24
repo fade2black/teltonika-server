@@ -191,7 +191,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
     {
       /* send 00/01*/
       logger_puts("Sending 'accept module'...");
-      if (bufferevent_write(bev, &accept, 1) == -1)
+      if (bufferevent_write(bev, &accept, sizeof(size_t)) == -1)
       {
         logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
         fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
@@ -202,12 +202,12 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   }
   else if (clients[slot].state == WAIT_FOR_DATA_PACKET)
   {
-    if (process_data_packet(input_buffer, nbytes, slot))/* if entire AVL packet ia read*/
+    if (process_data_packet(input_buffer, nbytes, slot))/* if entire AVL packet is read*/
     {
        logger_puts("%d bytes of data packet recieved, sending ack %zd\n", clients[slot].data_packet->len, clients[slot].data_packet->data[NUM_OF_DATA]);
       /* send #data recieved */
       accept = clients[slot].data_packet->data[NUM_OF_DATA];
-      if (bufferevent_write(bev, &accept, 1) == -1)
+      if (bufferevent_write(bev, &accept, sizeof(size_t)) == -1)
       {
         logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
         fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);

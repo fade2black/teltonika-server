@@ -84,6 +84,8 @@ process_data_packet(const unsigned char* data, size_t nbytes, int slot)
     length <<= 8;
     length |= clients[slot].data_packet->data[7];
 
+    logger_puts("  length: %zd, num_of_read_bytes: %zd", length, num_of_read_bytes);
+
     if (num_of_read_bytes < (length + 12))
       return FALSE;
     else if (num_of_read_bytes == (length + 12))
@@ -114,7 +116,6 @@ add_client(struct bufferevent *bev)
   assert(clients[empty_slot].imei != NULL);
   clients[empty_slot].data_packet = g_byte_array_new();
   assert(clients[empty_slot].data_packet != NULL);
-  clients[slot].data_length = 0;
 
   logger_puts("in WAIT_IMEI state");
 }
@@ -132,7 +133,6 @@ remove_client(struct bufferevent *bev)
   /* free allocated memories */
   g_byte_array_free (clients[slot].imei, TRUE);
   g_byte_array_free (clients[slot].data_packet, TRUE);
-  clients[slot].data_length = 0;
   /*******************************************/
 
   g_hash_table_remove(hash,  GINT_TO_POINTER(bev));
@@ -243,7 +243,7 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
 {
   /* We got a new connection! Set up a bufferevent for it. */
   logger_puts("A new connection established from");
-  printf("A new connection established from\n");
+  printf("A new connection established\n");
 
   struct event_base *base = evconnlistener_get_base(listener);
   struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);

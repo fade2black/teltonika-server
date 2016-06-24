@@ -83,7 +83,7 @@ process_data_packet(const unsigned char* data, size_t nbytes, int slot)
     length <<= 8;
     length |= 8;
     length |= clients[slot].data_packet->data[7];
-
+    logger_puts("length: %zd\n", length);
     if (num_of_read_bytes < (length + 12))
       return FALSE;
     else if (num_of_read_bytes == (length + 12))
@@ -203,7 +203,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   {
     if (process_data_packet(input_buffer, nbytes, slot))
     {
-       printf("%d bytes of data packet recieved\n", clients[slot].data_packet->len);
+       logger_puts("%d bytes of data packet recieved\n", clients[slot].data_packet->len);
        remove_client(bev);
        return;
       /* send #data recieved */

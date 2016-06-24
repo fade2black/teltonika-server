@@ -21,26 +21,11 @@ typedef struct _client_info
   struct bufferevent *bev;
   char state;
   GByteArray *imei;
+  GByteArray *data_packet;
 
 } client_info;
 static client_info clients[MAXCLIENTS];
 
-
-
-/* for diagnostics purpose */
-void bytes_to_string(unsigned char* bytes, size_t n, char* buffer)
-{
-  int i, j = 0;
-  char buf[3];
-  for(i=0; i < n; i++)
-  {
-    sprintf(buf, "%02x", bytes[i]);
-    buffer[j] = buf[0];
-    buffer[j+1] = buf[1];
-    j+=2;
-  }
-  buffer[j] = 0;
-}
 
 /* if all bytes of imei are read then return TRUE
    else return FALSE */
@@ -70,7 +55,7 @@ int process_imei(const unsigned char* data, size_t nbytes, int slot)
     else
     {
       logger_puts("ERROR: %s, '%s', line %d, number of bytes read is greater than indicated value in the IMEI message (first two bytes)", __FILE__, __func__, __LINE__);
-      fatal("ERROR: slot value (%d) out of range");
+      fatal("ERROR: %s, '%s', line %d, number of bytes read is greater than indicated value in the IMEI message (first two bytes)", __FILE__, __func__, __LINE__);
     }
   }
   return FALSE;
@@ -78,14 +63,37 @@ int process_imei(const unsigned char* data, size_t nbytes, int slot)
 
 void process_data_packet(const unsigned char* data, size_t nbytes, int slot)
 {
-  char buffer[3000];
+  size_t length;
+  size_t num_of_read_bytes;
+
   logger_puts("processing data packet");
 
-  bytes_to_string(clients[slot].imei->data, clients[slot].imei->len, buffer);
-  logger_puts(" IMEI: %s", buffer);
+  g_byte_array_append(clients[slot].data_packet, (guint8*)data, nbytes);
+  num_of_read_bytes = clients[slot].data_packet->len;
 
-  bytes_to_string(data, nbytes, buffer);
-  logger_puts(" Data packet: %s", buffer);
+  if (num_of_read_bytes > 7) /* if at least 8 bytes are recieved */
+  {
+    length = clients[slot].data_packet->data[4];
+    length <<= 8;
+    length |= clients[slot].data_packet->data[5];
+    length <<= 8;
+    length |= clients[slot].data_packet->data[6];
+    length <<= 8;
+    length |= 8;
+    length |= clients[slot].data_packet->data[7];
+
+    if (num_of_read_bytes < (length + 12))
+      return FALSE;
+    else if (num_of_read_bytes == (length + 12))
+      return TRUE;
+    else
+    {
+      logger_puts("ERROR: %s, '%s', line %d, number of bytes read is greater than indicated value in the data packet (first four bytes)", __FILE__, __func__, __LINE__);
+      fatal("ERROR: %s, '%s', line %d, number of bytes read is greater than indicated value in the data packet (first four bytes)", __FILE__, __func__, __LINE__);
+    }
+  }
+
+  return FALSE;
 }
 
 
@@ -98,9 +106,12 @@ add_client(struct bufferevent *bev)
   g_hash_table_insert(hash,  GINT_TO_POINTER(bev), GINT_TO_POINTER(empty_slot));
 
   clients[empty_slot].state = WAIT_FOR_IMEI;
+
   /* allocate memmory */
   clients[empty_slot].imei = g_byte_array_new();
   assert(clients[empty_slot].imei != NULL);
+  clients[empty_slot].data_packet = g_byte_array_new();
+  assert(clients[empty_slot].data_packet != NULL);
 
   logger_puts("in WAIT_IMEI state");
 }
@@ -117,6 +128,7 @@ remove_client(struct bufferevent *bev)
 
   /* free allocated memories */
   g_byte_array_free (clients[slot].imei, TRUE);
+  g_byte_array_free (clients[slot].data_packet, TRUE);
   /*******************************************/
 
   g_hash_table_remove(hash,  GINT_TO_POINTER(bev));
@@ -165,7 +177,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   if (nbytes == -1)
   {
     logger_puts("ERROR: %s, '%s', line %d, couldn't read data from bufferevent", __FILE__, __func__, __LINE__);
-    fatal("Couldn't read data from bufferevent in 'serv_read_cb'");
+    fatal("ERROR: %s, '%s', line %d, couldn't read data from bufferevent", __FILE__, __func__, __LINE__);
   }
 
   if (clients[slot].state == WAIT_FOR_IMEI)
@@ -179,7 +191,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
       if (bufferevent_write(bev, &accept, 1) == -1)
       {
         logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
-        fatal("Couldn't write data to bufferevent");
+        fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
       }
       clients[slot].state = WAIT_00_01_TOBE_SENT;
       logger_puts("in WAIT_00_01_TOBE_SENT state");
@@ -187,19 +199,21 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   }
   else if (clients[slot].state == WAIT_FOR_DATA_PACKET)
   {
-    process_data_packet(input_buffer, nbytes, slot);
-    remove_client(bev);
-    return;
-
-    /* send #data recieved */
-    accept = 17;
-    if (bufferevent_write(bev, &accept, 1) == -1)
+    if (process_data_packet(input_buffer, nbytes, slot))
     {
-      logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
-      fatal("Couldn't write data to bufferevent");
+       printf("%d bytes of data packet recieved\n", clients[slot].data_packet->len);
+       remove_clinet(bev);
+       return;
+      /* send #data recieved */
+      accept = 0;
+      if (bufferevent_write(bev, &accept, 1) == -1)
+      {
+        logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
+        fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
+      }
+      clients[slot].state = WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
+      logger_puts("in WAIT_NUM_RECIEVED_DATA_TOBE_SENT state");
     }
-    clients[slot].state = WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
-    logger_puts("in WAIT_NUM_RECIEVED_DATA_TOBE_SENT state");
   }
 }
 
@@ -228,6 +242,7 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
 {
   /* We got a new connection! Set up a bufferevent for it. */
   logger_puts("A new connection established from");
+  printf("A new connection established from\n");
 
   struct event_base *base = evconnlistener_get_base(listener);
   struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
@@ -289,7 +304,7 @@ main(int argc, char **argv)
   {
     logger_puts("ERROR: %s, '%s', line %d, couldn't open event base", __FILE__, __func__, __LINE__);
     logger_close();
-    fatal("Couldn't open event base");
+    fatal("ERROR: %s, '%s', line %d, couldn't open event base", __FILE__, __func__, __LINE__);
   }
 
   /* Clear the sockaddr before using it, in case there are extra

@@ -29,7 +29,8 @@ static client_info clients[MAXCLIENTS];
 
 /* if all bytes of imei are read then return TRUE
    else return FALSE */
-int process_imei(const unsigned char* data, size_t nbytes, int slot)
+static int
+process_imei(const unsigned char* data, size_t nbytes, int slot)
 {
   size_t length;
   size_t num_of_read_bytes;
@@ -61,7 +62,8 @@ int process_imei(const unsigned char* data, size_t nbytes, int slot)
   return FALSE;
 }
 
-void process_data_packet(const unsigned char* data, size_t nbytes, int slot)
+static int
+process_data_packet(const unsigned char* data, size_t nbytes, int slot)
 {
   size_t length;
   size_t num_of_read_bytes;
@@ -202,7 +204,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
     if (process_data_packet(input_buffer, nbytes, slot))
     {
        printf("%d bytes of data packet recieved\n", clients[slot].data_packet->len);
-       remove_clinet(bev);
+       remove_client(bev);
        return;
       /* send #data recieved */
       accept = 0;

@@ -27,6 +27,15 @@ typedef struct _client_info
 } client_info;
 static client_info clients[MAXCLIENTS];
 
+/* for diagnostics purpose */
+static void
+print_data_packet(unsigned char* data_packet, size_t len)
+{
+  int i;
+  for(i = 0; i < len; i++)
+    printf("%02x|", data_packet[i]);
+  printf("\n");
+}
 
 /* if all bytes of imei are read then return TRUE
    else return FALSE */
@@ -190,8 +199,9 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
     if (process_imei(input_buffer, nbytes, slot))
     {
       /* send 00/01*/
-      logger_puts("Sending 'accept module'...");
-      if (bufferevent_write(bev, &accept, sizeof(size_t)) == -1)
+      accept = 0x01;
+      logger_puts("Sending accept message: %02x...", accept);
+      if (bufferevent_write(bev, &accept, 1) == -1)
       {
         logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
         fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
@@ -204,7 +214,8 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   {
     if (process_data_packet(input_buffer, nbytes, slot))/* if entire AVL packet is read*/
     {
-       logger_puts("%d bytes of data packet recieved, sending ack %zd\n", clients[slot].data_packet->len, clients[slot].data_packet->data[NUM_OF_DATA]);
+      logger_puts("%d bytes of data packet recieved, sending ack %zd", clients[slot].data_packet->len, clients[slot].data_packet->data[NUM_OF_DATA]);
+      print_data_packet(clients[slot].data_packet->data, clients[slot].data_packet->len);
       /* send #data recieved */
       accept = clients[slot].data_packet->data[NUM_OF_DATA];
       if (bufferevent_write(bev, &accept, sizeof(size_t)) == -1)

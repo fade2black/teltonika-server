@@ -170,6 +170,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 {
   struct evbuffer *input = bufferevent_get_input(bev);
   unsigned char ack[4] = {0,0,0,0};
+  int nbytes;
 
   int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
   assert(0 <= slot && slot < MAXCLIENTS);
@@ -182,7 +183,8 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 
   memset(input_buffer, 0, INPUT_BUFSIZE);
 
-  if ( bufferevent_read(bev, input_buffer, INPUT_BUFSIZE) == -1)
+  nbytes = bufferevent_read(bev, input_buffer, INPUT_BUFSIZE);
+  if ( nbytes == -1)
   {
     logger_puts("ERROR: %s, '%s', line %d, couldn't read data from bufferevent", __FILE__, __func__, __LINE__);
     fatal("ERROR: %s, '%s', line %d, couldn't read data from bufferevent", __FILE__, __func__, __LINE__);
@@ -190,8 +192,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 
   if (clients[slot].state == WAIT_FOR_IMEI)
   {
-    /* if process_imei returns TRUE then imei are read entirely,
-       otherwise stay in the WAIT_FOR_IMEI state*/
+    /* if process_imei returns TRUE then imei are read entirely, otherwise stay in the WAIT_FOR_IMEI state*/
     if (process_imei(input_buffer, nbytes, slot))
     {
       ack[0] = 0x01;

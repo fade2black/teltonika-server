@@ -218,7 +218,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
       print_data_packet(clients[slot].data_packet->data, clients[slot].data_packet->len);
       /* send #data recieved */
       accept = clients[slot].data_packet->data[NUM_OF_DATA];
-      if (bufferevent_write(bev, &accept, sizeof(size_t)) == -1)
+      if (bufferevent_write(bev, &accept, sizeof(char)*4) == -1)
       {
         logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
         fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);

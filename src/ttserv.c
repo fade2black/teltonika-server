@@ -11,6 +11,8 @@
 #define WAIT_FOR_DATA_PACKET 3
 #define WAIT_NUM_RECIEVED_DATA_TOBE_SENT 4
 
+#define NUM_OF_DATA 9
+
 static unsigned char input_buffer[INPUT_BUFSIZE];
 struct event_base *base;
 static GHashTable* hash;
@@ -22,7 +24,6 @@ typedef struct _client_info
   char state;
   GByteArray *imei;
   GByteArray *data_packet;
-
 } client_info;
 static client_info clients[MAXCLIENTS];
 
@@ -81,9 +82,8 @@ process_data_packet(const unsigned char* data, size_t nbytes, int slot)
     length <<= 8;
     length |= clients[slot].data_packet->data[6];
     length <<= 8;
-    length |= 8;
     length |= clients[slot].data_packet->data[7];
-    logger_puts("length: %zd\n", length);
+
     if (num_of_read_bytes < (length + 12))
       return FALSE;
     else if (num_of_read_bytes == (length + 12))
@@ -114,6 +114,7 @@ add_client(struct bufferevent *bev)
   assert(clients[empty_slot].imei != NULL);
   clients[empty_slot].data_packet = g_byte_array_new();
   assert(clients[empty_slot].data_packet != NULL);
+  clients[slot].data_length = 0;
 
   logger_puts("in WAIT_IMEI state");
 }
@@ -131,6 +132,7 @@ remove_client(struct bufferevent *bev)
   /* free allocated memories */
   g_byte_array_free (clients[slot].imei, TRUE);
   g_byte_array_free (clients[slot].data_packet, TRUE);
+  clients[slot].data_length = 0;
   /*******************************************/
 
   g_hash_table_remove(hash,  GINT_TO_POINTER(bev));
@@ -159,7 +161,7 @@ serv_event_cb(struct bufferevent *bev, short events, void *ctx)
 static void
 serv_read_cb(struct bufferevent *bev, void *ctx)
 {
-  char accept = 1;
+  size_t accept;
   struct evbuffer *input = bufferevent_get_input(bev);
   size_t nbytes;
 
@@ -174,7 +176,6 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 
   memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
   nbytes = bufferevent_read(bev, input_buffer, INPUT_BUFSIZE);
-  printf("%zu bytes read\n", nbytes);
 
   if (nbytes == -1)
   {
@@ -201,13 +202,11 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   }
   else if (clients[slot].state == WAIT_FOR_DATA_PACKET)
   {
-    if (process_data_packet(input_buffer, nbytes, slot))
+    if (process_data_packet(input_buffer, nbytes, slot))/* if entire AVL packet ia read*/
     {
-       logger_puts("%d bytes of data packet recieved\n", clients[slot].data_packet->len);
-       remove_client(bev);
-       return;
+       logger_puts("%d bytes of data packet recieved, sending ack %zd\n", clients[slot].data_packet->len, clients[slot].data_packet->data[NUM_OF_DATA]);
       /* send #data recieved */
-      accept = 0;
+      accept = clients[slot].data_packet->data[NUM_OF_DATA];
       if (bufferevent_write(bev, &accept, 1) == -1)
       {
         logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);

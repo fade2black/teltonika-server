@@ -93,8 +93,6 @@ process_data_packet(const unsigned char* data, size_t nbytes, int slot)
     length <<= 8;
     length |= clients[slot].data_packet->data[7];
 
-    logger_puts("  length: %zd, num_of_read_bytes: %zd", length, num_of_read_bytes);
-
     if (num_of_read_bytes < (length + 12))
       return FALSE;
     else if (num_of_read_bytes == (length + 12))
@@ -170,9 +168,8 @@ serv_event_cb(struct bufferevent *bev, short events, void *ctx)
 static void
 serv_read_cb(struct bufferevent *bev, void *ctx)
 {
-  size_t accept;
   struct evbuffer *input = bufferevent_get_input(bev);
-  size_t nbytes;
+  unsigned char ack[4] = {0,0,0,0};
 
   int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
   assert(0 <= slot && slot < MAXCLIENTS);
@@ -183,10 +180,9 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
     fatal("ERROR: Insufficient buffer size");
   }
 
-  memset(input_buffer, 0, sizeof(char)*INPUT_BUFSIZE);
-  nbytes = bufferevent_read(bev, input_buffer, INPUT_BUFSIZE);
+  memset(input_buffer, 0, INPUT_BUFSIZE);
 
-  if (nbytes == -1)
+  if ( bufferevent_read(bev, input_buffer, INPUT_BUFSIZE) == -1)
   {
     logger_puts("ERROR: %s, '%s', line %d, couldn't read data from bufferevent", __FILE__, __func__, __LINE__);
     fatal("ERROR: %s, '%s', line %d, couldn't read data from bufferevent", __FILE__, __func__, __LINE__);
@@ -198,10 +194,8 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
        otherwise stay in the WAIT_FOR_IMEI state*/
     if (process_imei(input_buffer, nbytes, slot))
     {
-      /* send 00/01*/
-      accept = 0x01;
-      logger_puts("Sending accept message: %02x...", accept);
-      if (bufferevent_write(bev, &accept, 1) == -1)
+      ack[0] = 0x01;
+      if (bufferevent_write(bev, ack, 1) == -1)
       {
         logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
         fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
@@ -217,8 +211,8 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
       logger_puts("%d bytes of data packet recieved, sending ack %zd", clients[slot].data_packet->len, clients[slot].data_packet->data[NUM_OF_DATA]);
       print_data_packet(clients[slot].data_packet->data, clients[slot].data_packet->len);
       /* send #data recieved */
-      accept = clients[slot].data_packet->data[NUM_OF_DATA];
-      if (bufferevent_write(bev, &accept, sizeof(char)*4) == -1)
+      ack[3] = clients[slot].data_packet->data[NUM_OF_DATA];
+      if (bufferevent_write(bev, ack, 4) == -1)
       {
         logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
         fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);

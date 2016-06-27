@@ -58,10 +58,9 @@ typedef struct
 } AVL_data_array;
 
 size_t get_data_length(unsigned char* data_packet);
-void parse_gps_element(unsigned char* data_packet, size_t* pos, gps_element* gps_elem);
-void parse_io_element(unsigned char* data_packet, size_t* pos, io_element* io_elem);
-void parse_AVL_data(unsigned char* data_packet, size_t* pos, AVL_data* avl_data);
 void parse_AVL_data_array(unsigned char* data_packet, AVL_data_array* data_array);
+/* diagnostics functions */
 void print_avl_data_array(AVL_data_array* data_array); /* to stdio */
+void print_raw_packet(unsigned char* data_packet, size_t len); /* to stdio */
 
 #endif

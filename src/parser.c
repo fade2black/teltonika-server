@@ -2,7 +2,7 @@
 #include "hdrs.h"
 #include "parser.h"
 
-static size_t
+size_t
 get_data_length(unsigned char* data_packet)
 {
   size_t length;
@@ -149,7 +149,7 @@ parse_AVL_data(unsigned char* data_packet, size_t* pos, AVL_data* avl_data)
 }
 
 /******************************************************************************/
-static void
+void
 parse_AVL_data_array(unsigned char* data_packet, AVL_data_array* data_array)
 {
   size_t position = FISRT_RECORD_OFFSET;
@@ -168,7 +168,7 @@ parse_AVL_data_array(unsigned char* data_packet, AVL_data_array* data_array)
 
 /******************************************************************************/
 /* for diagnostics purpose */
-static void
+void
 print_raw_packet(unsigned char* data_packet, size_t len)
 {
   int i;

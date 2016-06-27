@@ -57,18 +57,11 @@ typedef struct
   AVL_data data_records[MAX_AVL_RECORDS];
 } AVL_data_array;
 
-static size_t
-get_data_length(unsigned char* data_packet);
-static void
-parse_gps_element(unsigned char* data_packet, size_t* pos, gps_element* gps_elem);
-static void
-parse_io_element(unsigned char* data_packet, size_t* pos, io_element* io_elem);
-static void
-parse_AVL_data(unsigned char* data_packet, size_t* pos, AVL_data* avl_data);
-static void
-parse_AVL_data_array(unsigned char* data_packet, AVL_data_array* data_array);
-static void
-print_avl_data_array(AVL_data_array* data_array); /* to stdio */
-
+size_t get_data_length(unsigned char* data_packet);
+void parse_gps_element(unsigned char* data_packet, size_t* pos, gps_element* gps_elem);
+void parse_io_element(unsigned char* data_packet, size_t* pos, io_element* io_elem);
+void parse_AVL_data(unsigned char* data_packet, size_t* pos, AVL_data* avl_data);
+void parse_AVL_data_array(unsigned char* data_packet, AVL_data_array* data_array);
+void print_avl_data_array(AVL_data_array* data_array); /* to stdio */
 
 #endif

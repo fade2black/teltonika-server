@@ -131,13 +131,14 @@ remove_client(struct bufferevent *bev)
   /* print diagnostics info before the data removed */
   int i;
   AVL_data_array data_array;
+  printf("IMEI: ");
   for(i = 0; i < clients[slot].imei->len; i++)
     printf("%c", clients[slot].imei->data[i]);
   printf("\n");
-  parse_AVL_data_array(clients[slot].imei->data, &data_array);
+  parse_AVL_data_array(clients[slot].data_packet->data, &data_array);
   print_avl_data_array(&data_array);
   /**********************************/
-  
+
   /* free allocated memories */
   g_byte_array_free (clients[slot].imei, TRUE);
   g_byte_array_free (clients[slot].data_packet, TRUE);

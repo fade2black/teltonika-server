@@ -179,7 +179,7 @@ print_raw_packet(unsigned char* data_packet, size_t len)
 
 /******************************************************************************/
 /* for diagnostics purpose */
-static void
+void
 print_avl_data_array(AVL_data_array* data_array)
 {
   int i;

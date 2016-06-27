@@ -22,15 +22,6 @@ parse_gps_element(const unsigned char* data_packet, size_t* pos, gps_element* gp
   int int_val, i;
   size_t index = *pos;
 
-  /* Latitude */
-  int_val = data_packet[index++];
-  for(i = 0; i < 3; i++)
-  {
-    int_val <<= 8;
-    int_val |= data_packet[index++];
-  }
-  gps_elem->latitude = int_val/10000000.0;
-
   /* Longitude */
   int_val = data_packet[index++];
   for(i = 0; i < 3; i++)
@@ -39,6 +30,15 @@ parse_gps_element(const unsigned char* data_packet, size_t* pos, gps_element* gp
     int_val |= data_packet[index++];
   }
   gps_elem->longitude = int_val/10000000.0;
+
+  /* Latitude */
+  int_val = data_packet[index++];
+  for(i = 0; i < 3; i++)
+  {
+    int_val <<= 8;
+    int_val |= data_packet[index++];
+  }
+  gps_elem->latitude = int_val/10000000.0;
 
 
   /* Altitude */

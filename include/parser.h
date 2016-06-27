@@ -1,4 +1,4 @@
-#ifdef _PACKET_PARSER
+#ifndef _PACKET_PARSER
 #define _PACKET_PARSER
 
 #define CODEC_ID 8

@@ -3,7 +3,7 @@
 #include "parser.h"
 
 size_t
-get_data_length(unsigned char* data_packet)
+get_data_length(const unsigned char* data_packet)
 {
   size_t length;
   length = data_packet[4];
@@ -17,7 +17,7 @@ get_data_length(unsigned char* data_packet)
 }
 /******************************************************************************/
 static void
-parse_gps_element(unsigned char* data_packet, size_t* pos, gps_element* gps_elem)
+parse_gps_element(const unsigned char* data_packet, size_t* pos, gps_element* gps_elem)
 {
   int int_val, i;
   size_t index = *pos;
@@ -63,7 +63,7 @@ parse_gps_element(unsigned char* data_packet, size_t* pos, gps_element* gps_elem
 }
 /******************************************************************************/
 static void
-parse_io_element(unsigned char* data_packet, size_t* pos, io_element* io_elem)
+parse_io_element(const unsigned char* data_packet, size_t* pos, io_element* io_elem)
 {
   int i, j;
   size_t index = *pos;
@@ -120,7 +120,7 @@ parse_io_element(unsigned char* data_packet, size_t* pos, io_element* io_elem)
 /******************************************************************************/
 /*  AVL data:  | <timestamp> | <priority> | <GPS element> | <IO Element> |  */
 static void
-parse_AVL_data(unsigned char* data_packet, size_t* pos, AVL_data* avl_data)
+parse_AVL_data(const unsigned char* data_packet, size_t* pos, AVL_data* avl_data)
 {
   int i;
   long int timestamp;
@@ -150,7 +150,7 @@ parse_AVL_data(unsigned char* data_packet, size_t* pos, AVL_data* avl_data)
 
 /******************************************************************************/
 void
-parse_AVL_data_array(unsigned char* data_packet, AVL_data_array* data_array)
+parse_AVL_data_array(const unsigned char* data_packet, AVL_data_array* data_array)
 {
   size_t position = FISRT_RECORD_OFFSET;
   AVL_data avl_data;
@@ -180,7 +180,7 @@ print_raw_packet(unsigned char* data_packet, size_t len)
 /******************************************************************************/
 /* for diagnostics purpose */
 void
-print_avl_data_array(AVL_data_array* data_array)
+print_avl_data_array(const AVL_data_array* data_array)
 {
   int i;
   char buffer[80];

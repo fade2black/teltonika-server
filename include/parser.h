@@ -57,10 +57,10 @@ typedef struct
   AVL_data data_records[MAX_AVL_RECORDS];
 } AVL_data_array;
 
-size_t get_data_length(unsigned char* data_packet);
-void parse_AVL_data_array(unsigned char* data_packet, AVL_data_array* data_array);
+size_t get_data_length(const unsigned char* data_packet);
+void parse_AVL_data_array(const unsigned char* data_packet, AVL_data_array* data_array);
 /* diagnostics functions */
-void print_avl_data_array(AVL_data_array* data_array); /* to stdio */
-void print_raw_packet(unsigned char* data_packet, size_t len); /* to stdio */
+void print_avl_data_array(const AVL_data_array* data_array); /* to stdio */
+void print_raw_packet(const unsigned char* data_packet, size_t len); /* to stdio */
 
 #endif

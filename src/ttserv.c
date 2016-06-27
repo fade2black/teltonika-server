@@ -128,6 +128,16 @@ remove_client(struct bufferevent *bev)
     fatal("ERROR: slot value (%d) out of range");
   }
 
+  /* print diagnostics info before the data removed */
+  int i;
+  AVL_data_array data_array;
+  for(i = 0; i < clients[slot].imei->len; i++)
+    printf("%c", clients[slot].imei->data[i]);
+  printf("\n");
+  parse_AVL_data_array(clients[slot].imei->data, &data_array);
+  print_avl_data_array(&data_array);
+  /**********************************/
+  
   /* free allocated memories */
   g_byte_array_free (clients[slot].imei, TRUE);
   g_byte_array_free (clients[slot].data_packet, TRUE);
@@ -201,7 +211,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
     if (process_data_packet(input_buffer, nbytes, slot))/* if entire AVL packet is read*/
     {
       logger_puts("%d bytes of data packet recieved, sending ack %zd", clients[slot].data_packet->len, clients[slot].data_packet->data[NUM_OF_DATA]);
-      print_raw_packet(clients[slot].data_packet->data, clients[slot].data_packet->len);
+      /*print_raw_packet(clients[slot].data_packet->data, clients[slot].data_packet->len);*/
       /* send #data recieved */
       ack[3] = clients[slot].data_packet->data[NUM_OF_DATA];
       if (bufferevent_write(bev, ack, 4) == -1)

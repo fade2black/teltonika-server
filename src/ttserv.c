@@ -149,7 +149,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   }
   else if (client->state == WAIT_FOR_DATA_PACKET)
   {
-    if (process_data_packet(input_buffer, nbytes, &client))/* if entire AVL packet is read*/
+    if (process_data_packet(input_buffer, nbytes, client))/* if entire AVL packet is read*/
     {
       /*logger_puts("%d bytes of data packet recieved, sending ack %zd", client->data_packet->len, client->data_packet->data[NUM_OF_DATA]);*/
       /* send #data recieved */
@@ -169,7 +169,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 static void
 serv_write_cb(struct bufferevent *bev, void *ctx)
 {
-  client_info* client;
+  client_info* client = NULL;
 
   get_client(bev, client);
   assert(client != NULL);

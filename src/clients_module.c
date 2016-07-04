@@ -81,7 +81,7 @@ add_client(struct bufferevent *bev)
   assert(clients[empty_slot].data_packet != NULL);
 }
 
-client_info* client
+client_info*
 get_client(struct bufferevent *bev)
 {
   int slot = GPOINTER_TO_INT(g_hash_table_lookup(clients_hash, GINT_TO_POINTER(bev)));

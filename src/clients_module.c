@@ -58,8 +58,8 @@ void
 init_clients_hash()
 {
   init_empty_slots();
-  hash = g_hash_table_new(g_direct_hash, g_direct_equal);
-  if (!hash)
+  clients_hash = g_hash_table_new(g_direct_hash, g_direct_equal);
+  if (!clients_hash)
   {
     logger_puts("ERROR: %s, '%s', line %d, 'g_hash_table_new' failed", __FILE__, __func__, __LINE__);
     fatal("ERROR: 'g_hash_table_new' failed");

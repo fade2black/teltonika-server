@@ -5,15 +5,6 @@
 #include "parser_module.h"
 #include <assert.h>
 
-#define BUF_SIZE 500
-
-#define WAIT_FOR_IMEI 1
-#define WAIT_00_01_TOBE_SENT 2
-#define WAIT_FOR_DATA_PACKET 3
-#define WAIT_NUM_RECIEVED_DATA_TOBE_SENT 4
-
-#define NUM_OF_DATA 9
-
 static unsigned char input_buffer[INPUT_BUFSIZE];
 struct event_base *base;
 

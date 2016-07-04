@@ -2,7 +2,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "hdrs.h"
-#include "logger.h"
+#include "logger_module.h"
 
 
 void logger_open(const char* filename)
@@ -31,8 +31,6 @@ void logger_puts(const char* format, ...)
 
   fprintf(logger_fp, "%s:- %s\n", tmbuf, buffer);
   fflush(logger_fp);
-
-
 }
 
 void logger_close()

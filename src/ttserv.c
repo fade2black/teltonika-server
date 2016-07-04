@@ -1,8 +1,8 @@
 
 #include "hdrs.h"
-#include "logger.h"
-#include "slots_mng.h"
-#include "parser.h"
+#include "logger_module.h"
+#include "clients_module.h"
+#include "parser_module.h"
 #include <assert.h>
 
 #define BUF_SIZE 500
@@ -16,39 +16,41 @@
 
 static unsigned char input_buffer[INPUT_BUFSIZE];
 struct event_base *base;
-static GHashTable* hash;
 
 
-typedef struct _client_info
+static void
+print_data_packet(const client_info* client)
 {
-  struct bufferevent *bev;
-  char state;
-  GByteArray *imei;
-  GByteArray *data_packet;
-} client_info;
-static client_info clients[MAXCLIENTS];
+  int i;
+  AVL_data_array data_array;
+  printf("IMEI: ");
+  for(i = 0; i < client->imei->len; i++)
+    printf("%c", client->imei->data[i]);
+  printf("\n");
+  parse_AVL_data_array(client->data_packet->data, &data_array);
+  print_avl_data_array(&data_array);
+}
 
-/* if all bytes of imei are read then return TRUE
-   else return FALSE */
+/* if all bytes of imei are read then return TRUE else return FALSE */
 static int
-process_imei(const unsigned char* data, size_t nbytes, int slot)
+process_imei(const unsigned char* data, size_t nbytes,  client_info* client)
 {
   size_t length;
   size_t num_of_read_bytes;
 
-  logger_puts("processing imei...");
+  assert(client != NULL);
 
   /* append bytes to imei */
-  g_byte_array_append(clients[slot].imei, (guint8*)data, nbytes);
-  num_of_read_bytes = clients[slot].imei->len;
+  g_byte_array_append(client->imei, (guint8*)data, nbytes);
+  num_of_read_bytes = client->imei->len;
 
   if (num_of_read_bytes > 1)
   {
     /* more than two bytes have already been read, so we can check
        whether or not we have read the entire message */
-    length = clients[slot].imei->data[0];
+    length = client->imei->data[0];
     length <<= 8;
-    length |= clients[slot].imei->data[1];
+    length |= client->imei->data[1];
 
     if ((num_of_read_bytes - 2) < length)
       return FALSE;
@@ -64,25 +66,25 @@ process_imei(const unsigned char* data, size_t nbytes, int slot)
 }
 
 static int
-process_data_packet(const unsigned char* data, size_t nbytes, int slot)
+process_data_packet(const unsigned char* data, size_t nbytes, client_info* client)
 {
   size_t length;
   size_t num_of_read_bytes;
 
   logger_puts("processing data packet");
 
-  g_byte_array_append(clients[slot].data_packet, (guint8*)data, nbytes);
-  num_of_read_bytes = clients[slot].data_packet->len;
+  g_byte_array_append(client->data_packet, (guint8*)data, nbytes);
+  num_of_read_bytes = client->data_packet->len;
 
   if (num_of_read_bytes > 7) /* if at least 8 bytes are recieved */
   {
-    length = clients[slot].data_packet->data[4];
+    length = client->data_packet->data[4];
     length <<= 8;
-    length |= clients[slot].data_packet->data[5];
+    length |= client->data_packet->data[5];
     length <<= 8;
-    length |= clients[slot].data_packet->data[6];
+    length |= client->data_packet->data[6];
     length <<= 8;
-    length |= clients[slot].data_packet->data[7];
+    length |= client->data_packet->data[7];
 
     if (num_of_read_bytes < (length + 12))
       return FALSE;
@@ -96,60 +98,6 @@ process_data_packet(const unsigned char* data, size_t nbytes, int slot)
   }
 
   return FALSE;
-}
-
-
-
-
-static void
-add_client(struct bufferevent *bev)
-{
-  int empty_slot = get_empty_slot();
-  g_hash_table_insert(hash,  GINT_TO_POINTER(bev), GINT_TO_POINTER(empty_slot));
-
-  clients[empty_slot].state = WAIT_FOR_IMEI;
-
-  /* allocate memmory */
-  clients[empty_slot].imei = g_byte_array_new();
-  assert(clients[empty_slot].imei != NULL);
-  clients[empty_slot].data_packet = g_byte_array_new();
-  assert(clients[empty_slot].data_packet != NULL);
-
-  logger_puts("in WAIT_IMEI state");
-}
-
-static void
-remove_client(struct bufferevent *bev)
-{
-  int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
-  if (slot < 0 || slot > MAXCLIENTS)
-  {
-    logger_puts("ERROR: %s, '%s', line %d, slot value (%d) out of range", __FILE__, __func__, __LINE__, slot);
-    fatal("ERROR: slot value (%d) out of range");
-  }
-
-  /* print diagnostics info before the data removed */
-  int i;
-  AVL_data_array data_array;
-  printf("IMEI: ");
-  for(i = 0; i < clients[slot].imei->len; i++)
-    printf("%c", clients[slot].imei->data[i]);
-  printf("\n");
-  parse_AVL_data_array(clients[slot].data_packet->data, &data_array);
-  print_avl_data_array(&data_array);
-  /**********************************/
-
-  /* free allocated memories */
-  g_byte_array_free (clients[slot].imei, TRUE);
-  g_byte_array_free (clients[slot].data_packet, TRUE);
-  /*******************************************/
-
-  g_hash_table_remove(hash,  GINT_TO_POINTER(bev));
-  put_empty_slot(slot);
-
-  bufferevent_disable(bev, EV_READ | EV_WRITE);
-  bufferevent_setcb(bev, NULL, NULL, NULL, NULL);
-  bufferevent_free(bev);
 }
 
 /***********************************************************/
@@ -173,9 +121,10 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   struct evbuffer *input = bufferevent_get_input(bev);
   unsigned char ack[4] = {0,0,0,0};
   int nbytes;
+  client_info client;
 
-  int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
-  assert(0 <= slot && slot < MAXCLIENTS);
+  get_client(bev, &client);
+  assert(client != NULL);
 
   if (evbuffer_get_length(input) > INPUT_BUFSIZE)
   {
@@ -192,10 +141,10 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
     fatal("ERROR: %s, '%s', line %d, couldn't read data from bufferevent", __FILE__, __func__, __LINE__);
   }
 
-  if (clients[slot].state == WAIT_FOR_IMEI)
+  if (client.state == WAIT_FOR_IMEI)
   {
     /* if process_imei returns TRUE then imei are read entirely, otherwise stay in the WAIT_FOR_IMEI state*/
-    if (process_imei(input_buffer, nbytes, slot))
+    if (process_imei(input_buffer, nbytes, &client))
     {
       ack[0] = 0x01;
       if (bufferevent_write(bev, ack, 1) == -1)
@@ -203,24 +152,23 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
         logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
         fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
       }
-      clients[slot].state = WAIT_00_01_TOBE_SENT;
+      client.state = WAIT_00_01_TOBE_SENT;
       logger_puts("in WAIT_00_01_TOBE_SENT state");
     }
   }
-  else if (clients[slot].state == WAIT_FOR_DATA_PACKET)
+  else if (client.state == WAIT_FOR_DATA_PACKET)
   {
-    if (process_data_packet(input_buffer, nbytes, slot))/* if entire AVL packet is read*/
+    if (process_data_packet(input_buffer, nbytes, &client))/* if entire AVL packet is read*/
     {
-      logger_puts("%d bytes of data packet recieved, sending ack %zd", clients[slot].data_packet->len, clients[slot].data_packet->data[NUM_OF_DATA]);
-      /*print_raw_packet(clients[slot].data_packet->data, clients[slot].data_packet->len);*/
+      /*logger_puts("%d bytes of data packet recieved, sending ack %zd", client.data_packet->len, client.data_packet->data[NUM_OF_DATA]);*/
       /* send #data recieved */
-      ack[3] = clients[slot].data_packet->data[NUM_OF_DATA];
+      ack[3] = client.data_packet->data[NUM_OF_DATA];
       if (bufferevent_write(bev, ack, 4) == -1)
       {
         logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
         fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
       }
-      clients[slot].state = WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
+      client.state = WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
       logger_puts("in WAIT_NUM_RECIEVED_DATA_TOBE_SENT state");
     }
   }
@@ -230,17 +178,24 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 static void
 serv_write_cb(struct bufferevent *bev, void *ctx)
 {
-  int slot = GPOINTER_TO_INT(g_hash_table_lookup(hash, GINT_TO_POINTER(bev)));
-  assert(0 <= slot && slot < MAXCLIENTS);
+  client_info client;
 
-  if (clients[slot].state == WAIT_00_01_TOBE_SENT)
+  get_client(bev, &client);
+  assert(client != NULL);
+
+  if (client.state == WAIT_00_01_TOBE_SENT)
   {
-    clients[slot].state = WAIT_FOR_DATA_PACKET;
+    client.state = WAIT_FOR_DATA_PACKET;
     logger_puts("in WAIT_FOR_DATA_PACKET state");
   }
-  else if (clients[slot].state == WAIT_NUM_RECIEVED_DATA_TOBE_SENT)
+  else if (client.state == WAIT_NUM_RECIEVED_DATA_TOBE_SENT)
   {
+    print_data_packet(&client);/* for debug purpose */
+
     remove_client(bev);
+    bufferevent_disable(bev, EV_READ | EV_WRITE);
+    bufferevent_setcb(bev, NULL, NULL, NULL, NULL);
+    bufferevent_free(bev);
     logger_puts("client removed");
   }
 }
@@ -284,15 +239,8 @@ main(int argc, char **argv)
   struct evconnlistener *listener;
   struct sockaddr_in sin;
 
-  init_empty_slots();
+  init_clients_hash();
 
-  hash = g_hash_table_new(g_direct_hash, g_direct_equal);
-  if (!hash)
-  {
-    logger_puts("ERROR: %s, '%s', line %d, could not create hash table", __FILE__, __func__, __LINE__);
-    logger_close();
-    fatal("ERROR: Could not create hash table");
-  }
 
   int port = 1975;
 
@@ -319,14 +267,14 @@ main(int argc, char **argv)
   /* Clear the sockaddr before using it, in case there are extra
    * platform-specific fields that can mess us up. */
   memset(&sin, 0, sizeof(sin));
-  /* This is an INET address */
   sin.sin_family = AF_INET;
-  /* Listen on 0.0.0.0 */
   sin.sin_addr.s_addr = htonl(0);
-  /* Listen on the given port. */
   sin.sin_port = htons(port);
 
-  listener = evconnlistener_new_bind(base, accept_conn_cb, NULL, LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE, -1,
+  listener = evconnlistener_new_bind(
+    base,
+    accept_conn_cb,
+    NULL, LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE, -1,
     (struct sockaddr*)&sin, sizeof(sin));
 
   if (!listener)
@@ -340,6 +288,7 @@ main(int argc, char **argv)
 
   event_base_dispatch(base);
 
+  /* free */
   evconnlistener_free(listener);
   event_base_free(base);
 

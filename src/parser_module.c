@@ -1,6 +1,6 @@
 #include <time.h>
 #include "hdrs.h"
-#include "parser.h"
+#include "parser_module.h"
 
 size_t
 get_data_length(const unsigned char* data_packet)

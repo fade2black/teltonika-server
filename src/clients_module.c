@@ -93,7 +93,7 @@ get_client(struct bufferevent *bev, client_info* client)
     fatal("ERROR: slot value (%d) out of range");
   }
 
-  *client = clients[slot];
+  client = &clients[slot];
 }
 
 void

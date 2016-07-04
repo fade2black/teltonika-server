@@ -112,9 +112,9 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   struct evbuffer *input = bufferevent_get_input(bev);
   unsigned char ack[4] = {0,0,0,0};
   int nbytes;
-  client_info client;
+  client_info* client;
 
-  get_client(bev, &client);
+  get_client(bev, client);
   assert(client != NULL);
 
   if (evbuffer_get_length(input) > INPUT_BUFSIZE)
@@ -132,10 +132,10 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
     fatal("ERROR: %s, '%s', line %d, couldn't read data from bufferevent", __FILE__, __func__, __LINE__);
   }
 
-  if (client.state == WAIT_FOR_IMEI)
+  if (client->state == WAIT_FOR_IMEI)
   {
     /* if process_imei returns TRUE then imei are read entirely, otherwise stay in the WAIT_FOR_IMEI state*/
-    if (process_imei(input_buffer, nbytes, &client))
+    if (process_imei(input_buffer, nbytes, client))
     {
       ack[0] = 0x01;
       if (bufferevent_write(bev, ack, 1) == -1)
@@ -143,23 +143,23 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
         logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
         fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
       }
-      client.state = WAIT_00_01_TOBE_SENT;
+      client->state = WAIT_00_01_TOBE_SENT;
       logger_puts("in WAIT_00_01_TOBE_SENT state");
     }
   }
-  else if (client.state == WAIT_FOR_DATA_PACKET)
+  else if (client->state == WAIT_FOR_DATA_PACKET)
   {
     if (process_data_packet(input_buffer, nbytes, &client))/* if entire AVL packet is read*/
     {
-      /*logger_puts("%d bytes of data packet recieved, sending ack %zd", client.data_packet->len, client.data_packet->data[NUM_OF_DATA]);*/
+      /*logger_puts("%d bytes of data packet recieved, sending ack %zd", client->data_packet->len, client->data_packet->data[NUM_OF_DATA]);*/
       /* send #data recieved */
-      ack[3] = client.data_packet->data[NUM_OF_DATA];
+      ack[3] = client->data_packet->data[NUM_OF_DATA];
       if (bufferevent_write(bev, ack, 4) == -1)
       {
         logger_puts("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
         fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
       }
-      client.state = WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
+      client->state = WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
       logger_puts("in WAIT_NUM_RECIEVED_DATA_TOBE_SENT state");
     }
   }
@@ -169,19 +169,19 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 static void
 serv_write_cb(struct bufferevent *bev, void *ctx)
 {
-  client_info client;
+  client_info* client;
 
-  get_client(bev, &client);
+  get_client(bev, client);
   assert(client != NULL);
 
-  if (client.state == WAIT_00_01_TOBE_SENT)
+  if (client->state == WAIT_00_01_TOBE_SENT)
   {
-    client.state = WAIT_FOR_DATA_PACKET;
+    client->state = WAIT_FOR_DATA_PACKET;
     logger_puts("in WAIT_FOR_DATA_PACKET state");
   }
-  else if (client.state == WAIT_NUM_RECIEVED_DATA_TOBE_SENT)
+  else if (client->state == WAIT_NUM_RECIEVED_DATA_TOBE_SENT)
   {
-    print_data_packet(&client);/* for debug purpose */
+    print_data_packet(client);/* for debug purpose */
 
     remove_client(bev);
     bufferevent_disable(bev, EV_READ | EV_WRITE);

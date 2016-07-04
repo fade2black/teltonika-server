@@ -81,11 +81,10 @@ add_client(struct bufferevent *bev)
   assert(clients[empty_slot].data_packet != NULL);
 }
 
-void
-get_client(struct bufferevent *bev, client_info* client)
+client_info* client
+get_client(struct bufferevent *bev)
 {
   int slot = GPOINTER_TO_INT(g_hash_table_lookup(clients_hash, GINT_TO_POINTER(bev)));
-  client = NULL;
 
   if (slot < 0 || slot >= MAXCLIENTS)
   {
@@ -93,7 +92,7 @@ get_client(struct bufferevent *bev, client_info* client)
     fatal("ERROR: slot value (%d) out of range");
   }
 
-  client = &clients[slot];
+  return &clients[slot];
 }
 
 void

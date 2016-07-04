@@ -112,9 +112,9 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
   struct evbuffer *input = bufferevent_get_input(bev);
   unsigned char ack[4] = {0,0,0,0};
   int nbytes;
-  client_info* client;
+  client_info* client = NULL;
 
-  get_client(bev, client);
+  client = get_client(bev);
   assert(client != NULL);
 
   if (evbuffer_get_length(input) > INPUT_BUFSIZE)
@@ -171,7 +171,7 @@ serv_write_cb(struct bufferevent *bev, void *ctx)
 {
   client_info* client = NULL;
 
-  get_client(bev, client);
+  client = get_client(bev);
   assert(client != NULL);
 
   if (client->state == WAIT_00_01_TOBE_SENT)

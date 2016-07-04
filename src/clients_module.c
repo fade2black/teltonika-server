@@ -1,5 +1,6 @@
 #include "hdrs.h"
 #include "logger_module.h"
+#include "clients_module.h"
 #include <assert.h>
 
 static int empty_slots[MAXCLIENTS];

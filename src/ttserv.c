@@ -270,6 +270,14 @@ serv_write_cb(struct bufferevent *bev, void *ctx)
   {
     push_onto_queue(client); /* for parsing and storing in DB, by another thread */
 
+    /* Wake waiting consumer */
+    s = pthread_cond_signal(&cond_consumer);
+    if (s != 0)
+    {
+      logger_puts("ERROR: %s, '%s', line %d, pthread_cond_signal failed with code %d", __FILE__, __func__, __LINE__, s);
+      fatal("ERROR: %s, '%s', line %d, pthread_cond_signal failed with code %d", __FILE__, __func__, __LINE__, s);
+    }
+
     remove_client(bev);
     bufferevent_disable(bev, EV_READ | EV_WRITE);
     bufferevent_setcb(bev, NULL, NULL, NULL, NULL);

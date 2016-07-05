@@ -15,7 +15,7 @@ SRCFILES := $(shell find $(SRCDIR) -type f -name '*.c')
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SRCFILES:.c=.o))
 
 CFLAGS := -Wall `pkg-config --cflags glib-2.0`
-LDLIBS := `pkg-config --libs glib-2.0` -levent
+LDLIBS := `pkg-config --libs glib-2.0` -levent -pthread
 INC := -I $(INCDIR) -I /usr/local/include
 
 

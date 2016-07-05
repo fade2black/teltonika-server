@@ -5,7 +5,6 @@
 
 typedef struct
 {
-  struct bufferevent *bev;
   char state;
   GByteArray *imei;
   GByteArray *data_packet;

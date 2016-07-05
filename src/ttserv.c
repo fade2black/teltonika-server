@@ -7,19 +7,104 @@
 
 static unsigned char input_buffer[INPUT_BUFSIZE];
 struct event_base *base;
+static GQueue* queue;
+static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t cond_consumer = PTHREAD_COND_INITIALIZER;
 
-/* for debug purpose */
+
+
+
 static void
-print_data_packet(const client_info* client)
+push_onto_queue(const client_info* client)
 {
+  AVL_data_array *data_array;
+  int s;
+
+  data_array = (AVL_data_array*) malloc(sizeof(AVL_data_array));
+  if (!data_array)
+  {
+    logger_puts("ERROR: %s, '%s', line %d, malloc failed", __FILE__, __func__, __LINE__);
+    fatal("%s, '%s', line %d, malloc failed", __FILE__, __func__, __LINE__);
+  }
+
+  parse_AVL_data_array(client->data_packet->data, data_array);
+
+  s = pthread_mutex_lock(&mtx);
+  if (s != 0)
+  {
+    logger_puts("ERROR: %s, '%s', line %d, pthread_mutex_lock failed with code %d", __FILE__, __func__, __LINE__, s);
+    fatal("ERROR: %s, '%s', line %d, pthread_mutex_lock failed with code %d", __FILE__, __func__, __LINE__, s);
+  }
+
+  g_queue_push_head(queue, data_array);
+
+  s = pthread_mutex_unlock(&mtx);
+  if (s != 0)
+  {
+    logger_puts("ERROR: %s, '%s', line %d, pthread_mutex_unlock failed with code %d", __FILE__, __func__, __LINE__, s);
+    fatal("ERROR: %s, '%s', line %d, pthread_mutex_unlock failed with code %d", __FILE__, __func__, __LINE__, s);
+  }
+
+  /* for debug purpose */
   int i;
-  AVL_data_array data_array;
   printf("IMEI: ");
   for(i = 0; i < client->imei->len; i++)
     printf("%c", client->imei->data[i]);
   printf("\n");
-  parse_AVL_data_array(client->data_packet->data, &data_array);
-  print_avl_data_array(&data_array);
+
+}
+/***********************************************************/
+
+static void*
+thread_consumer(void *arg)
+{
+  AVL_data_array *data_array;
+  int s;
+
+  while(1)
+  {
+    s = pthread_mutex_lock(&mtx);
+    if (s != 0)
+    {
+      logger_puts("ERROR: %s, '%s', line %d, pthread_mutex_lock failed with code %d", __FILE__, __func__, __LINE__, s);
+      fatal("ERROR: %s, '%s', line %d, pthread_mutex_lock failed with code %d", __FILE__, __func__, __LINE__, s);
+    }
+    /******* LOCKED *******************************************/
+
+    /* Wait until queue has at least one element*/
+    while (queue->length == 0)
+    {
+        s = pthread_cond_wait(&cond_consumer, &mtx);
+        if (s != 0)
+        {
+          logger_puts("ERROR: %s, '%s', line %d, pthread_cond_wait failed with code %d", __FILE__, __func__, __LINE__, s);
+          fatal("ERROR: %s, '%s', line %d, pthread_cond_wait failed with code %d", __FILE__, __func__, __LINE__, s);
+        }
+    }
+
+    /* consume all AVL data*/
+    while (queue->length)
+    {
+      data_array = g_queue_pop_tail(queue);
+
+      /* for debug purpose */
+      print_AVL_data(data_array);
+      /*****************************/
+
+      free(data_array);
+    }
+
+    /******* UNLOCK *******************************************/
+    s = pthread_mutex_unlock(&mtx);
+    if (s != 0)
+    {
+      logger_puts("ERROR: %s, '%s', line %d, pthread_mutex_unlock failed with code %d", __FILE__, __func__, __LINE__, s);
+      fatal("ERROR: %s, '%s', line %d, pthread_mutex_unlock failed with code %d", __FILE__, __func__, __LINE__, s);
+    }
+
+  }/* while(1) */
+
+  return 0;
 }
 /***********************************************************/
 
@@ -183,13 +268,13 @@ serv_write_cb(struct bufferevent *bev, void *ctx)
   }
   else if (client->state == WAIT_NUM_RECIEVED_DATA_TOBE_SENT)
   {
-    print_data_packet(client);/* for debug purpose */
+    push_onto_queue(client); /* for parsing and storing in DB, by another thread */
 
     remove_client(bev);
     bufferevent_disable(bev, EV_READ | EV_WRITE);
     bufferevent_setcb(bev, NULL, NULL, NULL, NULL);
     bufferevent_free(bev);
-    logger_puts("client removed");
+    /*logger_puts("client removed");*/
   }
 }
 /****************************************************************************/
@@ -197,8 +282,7 @@ serv_write_cb(struct bufferevent *bev, void *ctx)
 static void
 accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx)
 {
-  /* We got a new connection, so set up a bufferevent for it. */
-  logger_puts("A new connection established from");
+  /*logger_puts("A new connection established from");*/
   printf("A new connection established\n");
 
   struct event_base *base = evconnlistener_get_base(listener);
@@ -228,18 +312,32 @@ main(int argc, char **argv)
 {
   struct evconnlistener *listener;
   struct sockaddr_in sin;
+  int s, port = 1975;;
+  void* res;
+  pthread_t pthread;
+
+  logger_open("ttserv.log");
 
   init_clients_hash();
+  queue = g_queue_new();
+  assert(queue != NULL);
 
+  /* start parallel thread */
+  s = pthread_create(&pthread, NULL, thread_consumer, NULL);
+  if (s != 0)
+  {
+    logger_puts("ERROR: %s, '%s', line %d, pthread_create failed with error %d", __FILE__, __func__, __LINE__, s);
+    logger_close();
+    fatal("ERROR: %s, '%s', line %d, pthread_create failed with error %d", __FILE__, __func__, __LINE__, s);
+  }
+  logger_puts("INFO: AVL data consumer started successfully");
+  puts("AVL data consumer thread started successfully");
 
-  int port = 1975;
 
   if (argc > 1)
     port = atoi(argv[1]);
 
-  logger_open("ttserv.log");
-
-  if (port<=0 || port>65535)
+  if (port <= 0 || port > 65535)
   {
     logger_puts("ERROR: %s, '%s', line %d, invalid port", __FILE__, __func__, __LINE__);
     logger_close();
@@ -275,12 +373,30 @@ main(int argc, char **argv)
   }
 
   evconnlistener_set_error_cb(listener, accept_error_cb);
-
   event_base_dispatch(base);
+
+
+  /* JUST IN CASE,
+     in fact this code should be unreachable since event_base_dispatch loops infinitely */
+  s = pthread_join(pthread, &res);
+  if (s != 0)
+  {
+    logger_puts("ERROR: %s, '%s', line %d, pthread_join failed with error %d", __FILE__, __func__, __LINE__, s);
+    logger_close();
+    fatal("ERROR: %s, '%s', line %d, pthread_join failed with error %d", __FILE__, __func__, __LINE__, s);
+  }
+  puts("AVL data consumer thread finished successfully.");
 
   /* free */
   evconnlistener_free(listener);
   event_base_free(base);
+
+  while(queue->length)
+    free(g_queue_pop_head(queue));
+
+  g_queue_free(queue);
+  pthread_mutex_destroy(&mtx);
+  pthread_cond_destroy(&cond_consumer);
 
   logger_close();
   exit(EXIT_SUCCESS);

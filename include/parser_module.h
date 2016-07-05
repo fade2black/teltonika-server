@@ -4,7 +4,7 @@
 #define CODEC_ID 8
 #define NUM_OF_DATA 9
 #define FISRT_RECORD_OFFSET 10
-#define MAX_AVL_RECORDS 50
+#define MAX_AVL_RECORDS 25
 
 
 typedef struct
@@ -29,16 +29,16 @@ typedef struct
   unsigned char number_of_total_io;
 
   unsigned char number_of_1byte_io;
-  io_element_node one_byte_io[256];
+  io_element_node one_byte_io[4];
 
   unsigned char number_of_2byte_io;
-  io_element_node two_byte_io[256];
+  io_element_node two_byte_io[4];
 
   unsigned char number_of_4byte_io;
-  io_element_node four_byte_io[256];
+  io_element_node four_byte_io[4];
 
   unsigned char number_of_8byte_io;
-  io_element_node eight_byte_io[256];
+  io_element_node eight_byte_io[4];
 
 } io_element;
 
@@ -59,7 +59,7 @@ typedef struct
 
 void parse_AVL_data_array(const unsigned char* data_packet, AVL_data_array* data_array);
 /* diagnostics functions */
-void print_avl_data_array(const AVL_data_array* data_array); /* to stdio */
+void print_AVL_data(const AVL_data_array* data_array); /* to stdio */
 void print_raw_packet(const unsigned char* data_packet, size_t len); /* to stdio */
 
 #endif

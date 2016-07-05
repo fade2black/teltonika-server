@@ -256,6 +256,8 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
 static void
 serv_write_cb(struct bufferevent *bev, void *ctx)
 {
+  int s;
+  
   client_info* client = NULL;
 
   client = get_client(bev);

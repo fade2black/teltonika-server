@@ -2,20 +2,6 @@
 #include "hdrs.h"
 #include "parser_module.h"
 
-size_t
-get_data_length(const unsigned char* data_packet)
-{
-  size_t length;
-  length = data_packet[4];
-  length <<= 8;
-  length |= data_packet[5];
-  length <<= 8;
-  length |= data_packet[6];
-  length <<= 8;
-  length |= data_packet[7];
-  return length;
-}
-/******************************************************************************/
 static void
 parse_gps_element(const unsigned char* data_packet, size_t* pos, gps_element* gps_elem)
 {
@@ -162,7 +148,7 @@ parse_AVL_data_array(const unsigned char* data_packet, AVL_data_array* data_arra
   for(i = 0; i < data_array->number_of_data; i++)
   {
     parse_AVL_data(data_packet, &position, &avl_data);
-    data_array->data_records[i] = avl_data;
+    data_array->records[i] = avl_data;
   }
 }
 
@@ -193,7 +179,7 @@ print_avl_data_array(const AVL_data_array* data_array)
   for(i = 0; i < data_array->number_of_data; i++)
   {
     printf(" Data %d\n", i+1);
-    avl_data = data_array->data_records[i];
+    avl_data = data_array->records[i];
 
     tminfo = localtime(&avl_data.timestamp);
     strftime(buffer, 80, "%Y-%m-%d %H:%M:%S %z", tminfo);

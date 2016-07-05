@@ -4,6 +4,8 @@
 #include "hdrs.h"
 #include "logger_module.h"
 
+static FILE *logger_fp;
+static time_t rawtime;
 
 void logger_open(const char* filename)
 {

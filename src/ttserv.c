@@ -8,7 +8,7 @@
 static unsigned char input_buffer[INPUT_BUFSIZE];
 struct event_base *base;
 
-
+/* for debug purpose */
 static void
 print_data_packet(const client_info* client)
 {
@@ -21,6 +21,7 @@ print_data_packet(const client_info* client)
   parse_AVL_data_array(client->data_packet->data, &data_array);
   print_avl_data_array(&data_array);
 }
+/***********************************************************/
 
 /* if all bytes of imei are read then return TRUE else return FALSE */
 static int
@@ -55,7 +56,9 @@ process_imei(const unsigned char* data, size_t nbytes,  client_info* client)
   }
   return FALSE;
 }
+/***********************************************************/
 
+/* if all bytes of data packet are read then return TRUE else return FALSE */
 static int
 process_data_packet(const unsigned char* data, size_t nbytes, client_info* client)
 {
@@ -90,7 +93,6 @@ process_data_packet(const unsigned char* data, size_t nbytes, client_info* clien
 
   return FALSE;
 }
-
 /***********************************************************/
 
 static void
@@ -104,8 +106,8 @@ serv_event_cb(struct bufferevent *bev, short events, void *ctx)
   if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR))
     bufferevent_free(bev);
 }
-
 /****************************************************************************/
+
 static void
 serv_read_cb(struct bufferevent *bev, void *ctx)
 {
@@ -164,8 +166,8 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
     }
   }
 }
-
 /****************************************************************************/
+
 static void
 serv_write_cb(struct bufferevent *bev, void *ctx)
 {
@@ -190,12 +192,12 @@ serv_write_cb(struct bufferevent *bev, void *ctx)
     logger_puts("client removed");
   }
 }
-
 /****************************************************************************/
+
 static void
 accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx)
 {
-  /* We got a new connection! Set up a bufferevent for it. */
+  /* We got a new connection, so set up a bufferevent for it. */
   logger_puts("A new connection established from");
   printf("A new connection established\n");
 
@@ -208,9 +210,8 @@ accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct socka
 
   bufferevent_enable(bev, EV_READ);
 }
-
-
 /****************************************************************************/
+
 static void
 accept_error_cb(struct evconnlistener *listener, void *ctx)
 {
@@ -220,8 +221,6 @@ accept_error_cb(struct evconnlistener *listener, void *ctx)
   event_base_loopexit(base, NULL);
 }
 /****************************************************************************/
-
-
 
 
 int
@@ -256,7 +255,7 @@ main(int argc, char **argv)
   }
 
   /* Clear the sockaddr before using it, in case there are extra
-   * platform-specific fields that can mess us up. */
+     platform-specific fields that can mess us up. */
   memset(&sin, 0, sizeof(sin));
   sin.sin_family = AF_INET;
   sin.sin_addr.s_addr = htonl(0);

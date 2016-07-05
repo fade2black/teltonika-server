@@ -166,7 +166,7 @@ print_raw_packet(const unsigned char* data_packet, size_t len)
 /******************************************************************************/
 /* for diagnostics purpose */
 void
-print_AVL_data_array(const AVL_data_array* data_array)
+print_AVL_data(const AVL_data_array* data_array)
 {
   int i;
   char buffer[80];

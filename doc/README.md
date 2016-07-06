@@ -33,7 +33,7 @@ typedef struct
   double longitude;
   int altitude;
   int angle;
-  unsigned char sattelites;
+  unsigned char satellites;
   int speed;
 } gps_element;
 
@@ -78,3 +78,40 @@ typedef struct
 } AVL_data_array;
 ```
 `void parse_AVL_data_array(const unsigned char* data_packet, AVL_data_array* data_array);`
+
+## Database
+Database engine: `POSTRGRESQL` </br>
+Database name: `teltonika`</br>
+Table: `avl_records` <br>
+- id
+- tmstamp
+- latitude
+- longitude
+- altitude
+- angle
+- satellites
+- speed
+- io_speed
+- io_odometer
+- io_ignation
+- created_at
+- updated_at
+
+#### Query for creating `avl_records` table
+```
+CREATE TABLE IF NOT EXISTS avl_records (
+  id SERIAL PRIMARY KEY,
+  tmstamp TIMESTAMP,
+  latitude NUMERIC(8,6),
+  longitude NUMERIC(8,6),
+  altitude SMALLINT,
+  angle SMALLINT,
+  satellites SMALLINT,
+  speed SMALLINT,
+  io_speed SMALLINT,
+  io_odometer INTEGER,
+  io_ignation SMALLINT,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+```

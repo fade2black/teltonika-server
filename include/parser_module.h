@@ -13,7 +13,7 @@ typedef struct
   double longitude;
   int altitude;
   int angle;
-  unsigned char sattelites;
+  unsigned char satellites;
   int speed;
 } gps_element;
 

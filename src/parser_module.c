@@ -200,17 +200,17 @@ print_AVL_data(const AVL_data_array* data_array)
     /* 1-byte */
     printf("     #1-byte IO: %d\n", avl_data.io_elem.number_of_1byte_io);
     for(j = 0; j < avl_data.io_elem.number_of_1byte_io; j++)
-      printf("      (id:%d, val:%d) ", avl_data.io_elem.one_byte_io[j].id, avl_data.io_elem.one_byte_io[j].value);
+      printf("      (id:%d, val:%lu) ", avl_data.io_elem.one_byte_io[j].id, avl_data.io_elem.one_byte_io[j].value);
     printf("\n");
     /* 2-byte */
     printf("     #2-byte IO: %d\n", avl_data.io_elem.number_of_2byte_io);
     for(j = 0; j < avl_data.io_elem.number_of_2byte_io; j++)
-      printf("      (id:%d, val:%d) ", avl_data.io_elem.two_byte_io[j].id, avl_data.io_elem.two_byte_io[j].value);
+      printf("      (id:%d, val:%lu) ", avl_data.io_elem.two_byte_io[j].id, avl_data.io_elem.two_byte_io[j].value);
     printf("\n");
     /* 4-byte */
     printf("     #4-byte IO: %d\n", avl_data.io_elem.number_of_4byte_io);
     for(j = 0; j < avl_data.io_elem.number_of_4byte_io; j++)
-      printf("      (id:%d, val:%d) ", avl_data.io_elem.four_byte_io[j].id, avl_data.io_elem.four_byte_io[j].value);
+      printf("      (id:%d, val:%lu) ", avl_data.io_elem.four_byte_io[j].id, avl_data.io_elem.four_byte_io[j].value);
     printf("\n");
     /* 8-byte */
     printf("     #8-byte IO: %d\n", avl_data.io_elem.number_of_8byte_io);

@@ -2,7 +2,7 @@
 #include "conf_module.h"
 
 void
-conf_read(char* group_name, char* keys, char values[][MAX_CONF_STRING_LEN])
+conf_read(char* group_name, char keys[][MAX_CONF_STRING_LEN], char values[][MAX_CONF_STRING_LEN])
 {
   GError* error = NULL;
   GKeyFile* gkf = g_key_file_new();
@@ -12,11 +12,11 @@ conf_read(char* group_name, char* keys, char values[][MAX_CONF_STRING_LEN])
   if (!g_key_file_load_from_file(gkf, CONFIG_FILE, G_KEY_FILE_NONE, NULL))
     fatal("Could not read config file %s\n", CONFIG_FILE);
 
-  for(i=0; keys[0] != NULL; i++)
+  for(i=0; keys[i][0] != '\0'; i++)
   {
     value = g_key_file_get_string (gkf, group_name, keys[i], &error);
     if (!value)
-      puts("Warning: %s", error->message);
+      printf("Warning: %s", error->message);
     else
       strcpy(values[i], value);
 

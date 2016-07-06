@@ -2,6 +2,8 @@
 #include "conf_module.h"
 #include "pq_module.h"
 #include "logger_module.h"
+#include <libpq-fe.h>
+
 #define KEYS_NUMBER 3
 
 static PGconn *conn;
@@ -9,7 +11,7 @@ static PGconn *conn;
 void
  db_connect(char* dbname, char* username, char* password)
  {
-   char keys[KEYS_NUMBER+1] = {"dbname", "username", "password", ""};
+   char keys[KEYS_NUMBER+1][50] = {"dbname", "username", "password", ""};
    char values[KEYS_NUMBER][MAX_CONF_STRING_LEN];
    char conn_string[256];
 

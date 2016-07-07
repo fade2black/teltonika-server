@@ -119,7 +119,7 @@ io_speed, io_odometer, io_ignation VALUES ('%s', %lf, %lf, %d, %d, %d, %d, %d, %
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
       logger_puts("ERROR: %s", PQerrorMessage(conn));
-      puts("ERROR: %s", PQerrorMessage(conn));
+      printf("ERROR: %s\n", PQerrorMessage(conn));
       PQclear(res);
       PQfinish(conn);
       exit(EXIT_FAILURE);

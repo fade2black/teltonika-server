@@ -3,6 +3,7 @@
 #include "logger_module.h"
 #include "clients_module.h"
 #include "parser_module.h"
+#include "pq_module.h"
 #include <assert.h>
 
 static unsigned char input_buffer[INPUT_BUFSIZE];
@@ -12,54 +13,17 @@ static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t cond_consumer = PTHREAD_COND_INITIALIZER;
 
 
-
-
-static void
-push_onto_queue(const client_info* client)
-{
-  AVL_data_array *data_array;
-  int s;
-
-  data_array = (AVL_data_array*) malloc(sizeof(AVL_data_array));
-  if (!data_array)
-  {
-    logger_puts("ERROR: %s, '%s', line %d, malloc failed", __FILE__, __func__, __LINE__);
-    fatal("%s, '%s', line %d, malloc failed", __FILE__, __func__, __LINE__);
-  }
-
-  parse_AVL_data_array(client->data_packet->data, data_array);
-
-  s = pthread_mutex_lock(&mtx);
-  if (s != 0)
-  {
-    logger_puts("ERROR: %s, '%s', line %d, pthread_mutex_lock failed with code %d", __FILE__, __func__, __LINE__, s);
-    fatal("ERROR: %s, '%s', line %d, pthread_mutex_lock failed with code %d", __FILE__, __func__, __LINE__, s);
-  }
-
-  g_queue_push_head(queue, data_array);
-
-  s = pthread_mutex_unlock(&mtx);
-  if (s != 0)
-  {
-    logger_puts("ERROR: %s, '%s', line %d, pthread_mutex_unlock failed with code %d", __FILE__, __func__, __LINE__, s);
-    fatal("ERROR: %s, '%s', line %d, pthread_mutex_unlock failed with code %d", __FILE__, __func__, __LINE__, s);
-  }
-
-  /* for debug purpose */
-  int i;
-  printf("IMEI: ");
-  for(i = 0; i < client->imei->len; i++)
-    printf("%c", client->imei->data[i]);
-  printf("\n");
-
-}
-/***********************************************************/
-
 static void*
 thread_consumer(void *arg)
 {
   AVL_data_array *data_array;
   int s;
+  char keys[3][MAX_CONF_STRING_LEN] = {"dbname", "username", "password"};
+  char values[3][MAX_CONF_STRING_LEN];
+
+  conf_read("database", keys, values);
+  db_connect(value[0], value[1], value[2]);
+  puts("Connection to database establishe successfully");
 
   while(1)
   {
@@ -107,6 +71,50 @@ thread_consumer(void *arg)
   return 0;
 }
 /***********************************************************/
+
+
+static void
+push_onto_queue(const client_info* client)
+{
+  AVL_data_array *data_array;
+  int s;
+
+  data_array = (AVL_data_array*) malloc(sizeof(AVL_data_array));
+  if (!data_array)
+  {
+    logger_puts("ERROR: %s, '%s', line %d, malloc failed", __FILE__, __func__, __LINE__);
+    fatal("%s, '%s', line %d, malloc failed", __FILE__, __func__, __LINE__);
+  }
+
+  parse_AVL_data_array(client->data_packet->data, data_array);
+
+  s = pthread_mutex_lock(&mtx);
+  if (s != 0)
+  {
+    logger_puts("ERROR: %s, '%s', line %d, pthread_mutex_lock failed with code %d", __FILE__, __func__, __LINE__, s);
+    fatal("ERROR: %s, '%s', line %d, pthread_mutex_lock failed with code %d", __FILE__, __func__, __LINE__, s);
+  }
+
+  g_queue_push_head(queue, data_array);
+
+  s = pthread_mutex_unlock(&mtx);
+  if (s != 0)
+  {
+    logger_puts("ERROR: %s, '%s', line %d, pthread_mutex_unlock failed with code %d", __FILE__, __func__, __LINE__, s);
+    fatal("ERROR: %s, '%s', line %d, pthread_mutex_unlock failed with code %d", __FILE__, __func__, __LINE__, s);
+  }
+
+  /* for debug purpose */
+  int i;
+  printf("IMEI: ");
+  for(i = 0; i < client->imei->len; i++)
+    printf("%c", client->imei->data[i]);
+  printf("\n");
+
+}
+/***********************************************************/
+
+
 
 /* if all bytes of imei are read then return TRUE else return FALSE */
 static int

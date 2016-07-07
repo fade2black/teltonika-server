@@ -85,8 +85,8 @@ push_onto_queue(const client_info* client)
   }
 
   parse_AVL_data_array(client->data_packet->data, data_array);
-  for(i = 0; i < client->imei->len; i++)
-    data_array->imei[i] = client->imei->data[i];
+  strcpy(data_array->imei, client->imei->data + 2);
+
   /*strcpy(data_array->imei, (char*)client->imei->data);*/
 
   s = pthread_mutex_lock(&mtx);

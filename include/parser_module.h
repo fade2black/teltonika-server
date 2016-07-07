@@ -52,7 +52,7 @@ typedef struct
 
 typedef struct
 {
-  char imei[50];
+  unsigned char imei[50];
   unsigned char codec_id;
   unsigned char number_of_data;
   AVL_data records[MAX_AVL_RECORDS];

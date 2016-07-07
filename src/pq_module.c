@@ -55,6 +55,8 @@ static int retrieve_ignation_value(const io_element* io_elem)
     if (io_elem->one_byte_io[i].id == io_speed_id)
       return io_elem->one_byte_io[i].value;
   }
+
+  return -1;
 }
 
 static int retrieve_speed_value(const io_element* io_elem)
@@ -65,6 +67,8 @@ static int retrieve_speed_value(const io_element* io_elem)
     if (io_elem->two_byte_io[i].id == io_speed_id)
       return io_elem->two_byte_io[i].value;
   }
+
+  return -1;
 }
 
 static int retrieve_odometer_value(const io_element* io_elem)
@@ -75,6 +79,8 @@ static int retrieve_odometer_value(const io_element* io_elem)
     if (io_elem->four_byte_io[i].id == io_odometer_id)
       return io_elem->four_byte_io[i].value;
   }
+
+  return -1;
 }
 /*******************************************************************/
 
@@ -95,7 +101,7 @@ void db_store_AVL_data_array(const AVL_data_array* data_array)
     strftime(buffer, 80, "%Y-%m-%d %H:%M:%S %z", tminfo);
 
     sprintf(query, "INSERT INTO NSERT INTO avl_records(tmstamp, latitude, longitude, altitude, angle, satellites, speed,\
-io_speed, io_odometer, io_ignation VALUES ('%s', %lf, %lf, %zd, %zd, %d, %d, %d, %d, %d)",
+io_speed, io_odometer, io_ignation VALUES ('%s', %lf, %lf, %d, %d, %d, %d, %d, %d, %d)",
     time_str,
     avl_data.gps_elem.latitude,
     avl_data.gps_elem.longitude,

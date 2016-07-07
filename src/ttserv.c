@@ -75,7 +75,7 @@ static void
 push_onto_queue(const client_info* client)
 {
   AVL_data_array *data_array;
-  int s;
+  int s, i;
 
   data_array = (AVL_data_array*) malloc(sizeof(AVL_data_array));
   if (!data_array)
@@ -85,7 +85,9 @@ push_onto_queue(const client_info* client)
   }
 
   parse_AVL_data_array(client->data_packet->data, data_array);
-  strcpy(data_array->imei, client->imei->data);
+  for(i = 0; i < client->imei->len; i++)
+    data_array->imei[i] = client->imei->data[i];
+  /*strcpy(data_array->imei, (char*)client->imei->data);*/
 
   s = pthread_mutex_lock(&mtx);
   if (s != 0)
@@ -107,7 +109,9 @@ push_onto_queue(const client_info* client)
   /*int i;
   printf("IMEI: ");
   for(i = 0; i < client->imei->len; i++)
+  {
     printf("%c", client->imei->data[i]);
+  }
   printf("\n");*/
 
 }

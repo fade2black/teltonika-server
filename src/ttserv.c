@@ -4,6 +4,7 @@
 #include "clients_module.h"
 #include "parser_module.h"
 #include "pq_module.h"
+#include "conf_module.h"
 #include <assert.h>
 
 static unsigned char input_buffer[INPUT_BUFSIZE];

@@ -85,6 +85,7 @@ push_onto_queue(const client_info* client)
   }
 
   parse_AVL_data_array(client->data_packet->data, data_array);
+  strcpy(data_array->imei, client->imei->data);
 
   s = pthread_mutex_lock(&mtx);
   if (s != 0)
@@ -103,11 +104,11 @@ push_onto_queue(const client_info* client)
   }
 
   /* for debug purpose */
-  int i;
+  /*int i;
   printf("IMEI: ");
   for(i = 0; i < client->imei->len; i++)
     printf("%c", client->imei->data[i]);
-  printf("\n");
+  printf("\n");*/
 
 }
 /***********************************************************/
@@ -156,7 +157,7 @@ process_data_packet(const unsigned char* data, size_t nbytes, client_info* clien
   size_t length;
   size_t num_of_read_bytes;
 
-  logger_puts("processing data packet");
+  /*logger_puts("processing data packet");*/
 
   g_byte_array_append(client->data_packet, (guint8*)data, nbytes);
   num_of_read_bytes = client->data_packet->len;
@@ -237,14 +238,12 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
         fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
       }
       client->state = WAIT_00_01_TOBE_SENT;
-      logger_puts("in WAIT_00_01_TOBE_SENT state");
     }
   }
   else if (client->state == WAIT_FOR_DATA_PACKET)
   {
     if (process_data_packet(input_buffer, nbytes, client))/* if entire AVL packet is read*/
     {
-      /*logger_puts("%d bytes of data packet recieved, sending ack %zd", client->data_packet->len, client->data_packet->data[NUM_OF_DATA]);*/
       /* send #data recieved */
       ack[3] = client->data_packet->data[NUM_OF_DATA];
       if (bufferevent_write(bev, ack, 4) == -1)
@@ -253,7 +252,7 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
         fatal("ERROR: %s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
       }
       client->state = WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
-      logger_puts("in WAIT_NUM_RECIEVED_DATA_TOBE_SENT state");
+      /*logger_puts("in WAIT_NUM_RECIEVED_DATA_TOBE_SENT state");*/
     }
   }
 }
@@ -272,7 +271,7 @@ serv_write_cb(struct bufferevent *bev, void *ctx)
   if (client->state == WAIT_00_01_TOBE_SENT)
   {
     client->state = WAIT_FOR_DATA_PACKET;
-    logger_puts("in WAIT_FOR_DATA_PACKET state");
+    /*logger_puts("in WAIT_FOR_DATA_PACKET state");*/
   }
   else if (client->state == WAIT_NUM_RECIEVED_DATA_TOBE_SENT)
   {
@@ -290,7 +289,6 @@ serv_write_cb(struct bufferevent *bev, void *ctx)
     bufferevent_disable(bev, EV_READ | EV_WRITE);
     bufferevent_setcb(bev, NULL, NULL, NULL, NULL);
     bufferevent_free(bev);
-    /*logger_puts("client removed");*/
   }
 }
 /****************************************************************************/
@@ -328,7 +326,7 @@ main(int argc, char **argv)
 {
   struct evconnlistener *listener;
   struct sockaddr_in sin;
-  int s, port = 1975;;
+  int s, port = 1975;
   void* res;
   pthread_t pthread;
 

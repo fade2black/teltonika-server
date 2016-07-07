@@ -173,6 +173,7 @@ print_AVL_data(const AVL_data_array* data_array)
   struct tm* tminfo;
   AVL_data avl_data;
 
+  printf("IMEI: %s\n", data_array->imei);
   printf("Codec ID: %d\n", data_array->codec_id);
   printf("Number of data: %d\n", data_array->number_of_data);
 

@@ -100,7 +100,7 @@ void db_store_AVL_data_array(const AVL_data_array* data_array)
     tminfo = localtime(&avl_data.timestamp);
     strftime(time_str, 80, "%Y-%m-%d %H:%M:%S %z", tminfo);
 
-    sprintf(query, "NSERT INTO avl_records(tmstamp, latitude, longitude, altitude, angle, satellites, speed,\
+    sprintf(query, "INSERT INTO avl_records(tmstamp, latitude, longitude, altitude, angle, satellites, speed,\
 io_speed, io_odometer, io_ignation VALUES ('%s', %lf, %lf, %d, %d, %d, %d, %d, %d, %d)",
     time_str,
     avl_data.gps_elem.latitude,

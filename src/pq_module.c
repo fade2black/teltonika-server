@@ -50,7 +50,7 @@ db_connect()
 static int retrieve_ignation_value(const io_element* io_elem)
 {
   int i;
-  for(i = 0; i < io_elem->number_of_1byte_io)
+  for(i = 0; i < io_elem->number_of_1byte_io; i++)
   {
     if (io_elem->one_byte_io[i].id == io_speed_id)
       return io_elem->one_byte_io[i].value;
@@ -60,7 +60,7 @@ static int retrieve_ignation_value(const io_element* io_elem)
 static int retrieve_speed_value(const io_element* io_elem)
 {
   int i;
-  for(i = 0; i < io_elem->number_of_2byte_io)
+  for(i = 0; i < io_elem->number_of_2byte_io; i++)
   {
     if (io_elem->two_byte_io[i].id == io_speed_id)
       return io_elem->two_byte_io[i].value;
@@ -70,7 +70,7 @@ static int retrieve_speed_value(const io_element* io_elem)
 static int retrieve_odometer_value(const io_element* io_elem)
 {
   int i;
-  for(i = 0; i < io_elem->number_of_4byte_io)
+  for(i = 0; i < io_elem->number_of_4byte_io; i++)
   {
     if (io_elem->four_byte_io[i].id == io_odometer_id)
       return io_elem->four_byte_io[i].value;

@@ -18,8 +18,6 @@ thread_consumer(void *arg)
 {
   AVL_data_array *data_array;
   int s;
-  char keys[3][MAX_CONF_STRING_LEN] = {"dbname", "username", "password"};
-  char values[3][MAX_CONF_STRING_LEN];
 
   db_connect();
   puts("Connection to database established successfully");

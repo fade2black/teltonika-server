@@ -85,7 +85,7 @@ push_onto_queue(const client_info* client)
   }
 
   parse_AVL_data_array(client->data_packet->data, data_array);
-  strcpy(data_array->imei, client->imei->data + 2);
+  strcpy(data_array->imei, (char*)&client->imei->data[2]);
 
   /*strcpy(data_array->imei, (char*)client->imei->data);*/
 

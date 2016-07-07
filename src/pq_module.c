@@ -52,7 +52,7 @@ static int retrieve_ignation_value(const io_element* io_elem)
   int i;
   for(i = 0; i < io_elem->number_of_1byte_io; i++)
   {
-    if (io_elem->one_byte_io[i].id == io_speed_id)
+    if (io_elem->one_byte_io[i].id == io_ignation_id)
       return io_elem->one_byte_io[i].value;
   }
 

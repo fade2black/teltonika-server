@@ -47,33 +47,33 @@ db_connect()
 }
 
 /*******************************************************************/
-static int retrieve_ignation_value(const AVL_data_array* data_array)
+static int retrieve_ignation_value(const io_element* io_elem)
 {
   int i;
-  for(i = 0; i < data_array->io_elem.number_of_1byte_io)
+  for(i = 0; i < io_elem->number_of_1byte_io)
   {
-    if (data_array->io_elem.one_byte_io[i].id == io_ignation_id)
-      return data_array->io_elem.one_byte_io[i].value;
+    if (io_elem->one_byte_io[i].id == io_speed_id)
+      return io_elem->one_byte_io[i].value;
   }
 }
 
-static int retrieve_speed_value(const AVL_data_array* data_array)
+static int retrieve_speed_value(const io_element* io_elem)
 {
   int i;
-  for(i = 0; i < data_array->io_elem.number_of_2byte_io)
+  for(i = 0; i < io_elem->number_of_2byte_io)
   {
-    if (data_array->io_elem.two_byte_io[i].id == io_speed_id)
-      return data_array->io_elem.two_byte_io[i].value;
+    if (io_elem->two_byte_io[i].id == io_speed_id)
+      return io_elem->two_byte_io[i].value;
   }
 }
 
-static int retrieve_odometer_value(const AVL_data_array* data_array)
+static int retrieve_odometer_value(const io_element* io_elem)
 {
   int i;
-  for(i = 0; i < data_array->io_elem.number_of_4byte_io)
+  for(i = 0; i < io_elem->number_of_4byte_io)
   {
-    if (data_array->io_elem.four_byte_io[i].id == io_odometer_id)
-      return data_array->io_elem.four_byte_io[i].value;
+    if (io_elem->four_byte_io[i].id == io_odometer_id)
+      return io_elem->four_byte_io[i].value;
   }
 }
 /*******************************************************************/
@@ -95,7 +95,7 @@ void db_store_AVL_data_array(const AVL_data_array* data_array)
     strftime(buffer, 80, "%Y-%m-%d %H:%M:%S %z", tminfo);
 
     sprintf(query, "INSERT INTO NSERT INTO avl_records(tmstamp, latitude, longitude, altitude, angle, satellites, speed,\
-io_speed, io_odometer, io_ignation VALUES ('%s', %lf, %lf, %zd, %zd, %zd, %zd, %zd, %zd, %zd)",
+io_speed, io_odometer, io_ignation VALUES ('%s', %lf, %lf, %zd, %zd, %d, %d, %d, %d, %d)",
     time_str,
     avl_data.gps_elem.latitude,
     avl_data.gps_elem.longitude,
@@ -103,9 +103,9 @@ io_speed, io_odometer, io_ignation VALUES ('%s', %lf, %lf, %zd, %zd, %zd, %zd, %
     avl_data.gps_elem.angle,
     avl_data.gps_elem.satellites,
     avl_data.gps_elem.speed,
-    retrieve_speed_value(data_array),
-    retrieve_odometer_value(data_array),
-    retrieve_ignation_value(data_array)
+    retrieve_speed_value(&avl_data.io_elem),
+    retrieve_odometer_value(&avl_data.io_elem),
+    retrieve_ignation_value(&avl_data.io_elem)
     );
 
     res = PQexec(conn, query);

@@ -51,6 +51,7 @@ thread_consumer(void *arg)
       /* for debug purpose */
       print_AVL_data(data_array);
       /*****************************/
+      db_store_AVL_data_array(data_array);
 
       free(data_array);
     }

@@ -41,9 +41,9 @@ db_connect()
     logger_puts("Connection to database established successfully");
 
   conf_read("IO Elements", io_elem_keys, io_elem_values);
-  io_ignation_id = io_elem_keys[0];
-  io_speed_id = io_elem_keys[1];
-  io_odometer_id = io_elem_keys[2];
+  io_ignation_id = io_elem_values[0];
+  io_speed_id = io_elem_values[1];
+  io_odometer_id = io_elem_values[2];
 }
 
 /*******************************************************************/

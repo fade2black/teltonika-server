@@ -90,19 +90,19 @@ void db_store_AVL_data_array(const AVL_data_array* data_array)
   for(i = 0; i < data_array->number_of_data; i++)
   {
     avl_data = data_array->records[i];
-    
+
     tminfo = localtime(&avl_data.timestamp);
     strftime(buffer, 80, "%Y-%m-%d %H:%M:%S %z", tminfo);
 
     sprintf(query, "INSERT INTO NSERT INTO avl_records(tmstamp, latitude, longitude, altitude, angle, satellites, speed,\
 io_speed, io_odometer, io_ignation VALUES ('%s', %lf, %lf, %zd, %zd, %zd, %zd, %zd, %zd, %zd)",
     time_str,
-    avl_data->gps_elem.latitude,
-    avl_data->gps_elem.longitude,
-    avl_data->gps_elem.altitude,
-    avl_data->gps_elem.angle,
-    avl_data->gps_elem.satellites,
-    avl_data->gps_elem.speed,
+    avl_data.gps_elem.latitude,
+    avl_data.gps_elem.longitude,
+    avl_data.gps_elem.altitude,
+    avl_data.gps_elem.angle,
+    avl_data.gps_elem.satellites,
+    avl_data.gps_elem.speed,
     retrieve_speed_value(data_array),
     retrieve_odometer_value(data_array),
     retrieve_ignation_value(data_array)

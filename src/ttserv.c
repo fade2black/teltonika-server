@@ -23,7 +23,7 @@ thread_consumer(void *arg)
   char values[3][MAX_CONF_STRING_LEN];
 
   conf_read("database", keys, values);
-  db_connect(value[0], value[1], value[2]);
+  db_connect(values[0], values[1], values[2]);
   puts("Connection to database establishe successfully");
 
   while(1)

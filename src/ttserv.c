@@ -4,7 +4,6 @@
 #include "clients_module.h"
 #include "parser_module.h"
 #include "pq_module.h"
-#include "conf_module.h"
 #include <assert.h>
 
 static unsigned char input_buffer[INPUT_BUFSIZE];
@@ -22,9 +21,8 @@ thread_consumer(void *arg)
   char keys[3][MAX_CONF_STRING_LEN] = {"dbname", "username", "password"};
   char values[3][MAX_CONF_STRING_LEN];
 
-  conf_read("database", keys, values);
-  db_connect(values[0], values[1], values[2]);
-  puts("Connection to database establishe successfully");
+  db_connect();
+  puts("Connection to database established successfully");
 
   while(1)
   {

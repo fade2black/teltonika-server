@@ -9,7 +9,7 @@
 static PGconn *conn;
 
 void
-db_connect(char* dbname, char* username, char* password)
+db_connect()
 {
  char keys[KEYS_NUMBER+1][MAX_CONF_STRING_LEN] = {"dbname", "username", "password", ""};
  char values[KEYS_NUMBER][MAX_CONF_STRING_LEN];

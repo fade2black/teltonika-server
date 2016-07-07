@@ -16,7 +16,7 @@ conf_read(char* group_name, char keys[][MAX_CONF_STRING_LEN], char values[][MAX_
   {
     value = g_key_file_get_string (gkf, group_name, keys[i], &error);
     if (!value)
-      printf("Warning: %s", error->message);
+      printf("Warning: %s\n", error->message);
     else
       strcpy(values[i], value);
 

@@ -100,7 +100,7 @@ void db_store_AVL_data_array(const AVL_data_array* data_array)
     tminfo = localtime(&avl_data.timestamp);
     strftime(time_str, 80, "%Y-%m-%d %H:%M:%S %z", tminfo);
 
-    sprintf(query, "INSERT INTO NSERT INTO avl_records(tmstamp, latitude, longitude, altitude, angle, satellites, speed,\
+    sprintf(query, "NSERT INTO avl_records(tmstamp, latitude, longitude, altitude, angle, satellites, speed,\
 io_speed, io_odometer, io_ignation VALUES ('%s', %lf, %lf, %d, %d, %d, %d, %d, %d, %d)",
     time_str,
     avl_data.gps_elem.latitude,
@@ -119,9 +119,10 @@ io_speed, io_odometer, io_ignation VALUES ('%s', %lf, %lf, %d, %d, %d, %d, %d, %
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
       logger_puts("ERROR: %s", PQerrorMessage(conn));
+      puts("ERROR: %s", PQerrorMessage(conn));
       PQclear(res);
       PQfinish(conn);
-      fatal("ERROR: %s", PQerrorMessage(conn));
+      exit(EXIT_FAILURE);
     }
 
     PQclear(res);

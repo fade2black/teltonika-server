@@ -29,10 +29,10 @@ typedef struct
   unsigned char number_of_total_io;
 
   unsigned char number_of_1byte_io;
-  io_element_node one_byte_io[4];
+  io_element_node one_byte_io[5];
 
   unsigned char number_of_2byte_io;
-  io_element_node two_byte_io[4];
+  io_element_node two_byte_io[5];
 
   unsigned char number_of_4byte_io;
   io_element_node four_byte_io[4];

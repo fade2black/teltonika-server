@@ -119,8 +119,8 @@ io_speed, io_odometer, io_ignation) VALUES ('%s', '%s', %lf, %lf, %d, %d, %d, %d
 
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
-      logger_puts("ERROR: %s", PQerrorMessage(conn));
-      printf("ERROR: %s\n", PQerrorMessage(conn));
+      logger_puts("pqlib, %s", PQerrorMessage(conn));
+      printf("pqlib, %s\n", PQerrorMessage(conn));
       PQclear(res);
       PQfinish(conn);
       exit(EXIT_FAILURE);
@@ -130,45 +130,7 @@ io_speed, io_odometer, io_ignation) VALUES ('%s', '%s', %lf, %lf, %d, %d, %d, %d
   }
 }
 
-/*
-void do_exit(PGconn *conn, PGresult *res)
-{
-  fprintf(stderr, "%s\n", PQerrorMessage(conn));
 
-  PQclear(res);
-  PQfinish(conn);
-
-  exit(EXIT_FAILURE);
-}
-
-int main()
-{
-
-  PGconn *conn = PQconnectdb("user=teltonika dbname=teltonika password=teltonika");
-  PGresult *res;
-
-  if (PQstatus(conn) == CONNECTION_BAD)
-  {
-    fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(conn));
-
-    PQfinish(conn);
-    exit(EXIT_FAILURE);
-  }
-
-  res = PQexec(conn, "INSERT INTO avl_records(tmstamp, latitude, longitude, altitude, angle, satellites, speed,\
-io_speed, io_odometer, io_ignation, created_at, updated_at )\
-VALUES('2016-04-12 04:05:06', 25.3032016, 54.7146368, 111, 214, 4, 4, 5, 12345, 1, '2016-07-06 01:46:32', '2016-07-06 01:46:32' )");
-
-  if (PQresultStatus(res) != PGRES_COMMAND_OK)
-     do_exit(conn, res);
-
-  PQclear(res);
-  PQfinish(conn);
-
-  exit(EXIT_SUCCESS);
-
-}
-*/
 
 void
 db_close()

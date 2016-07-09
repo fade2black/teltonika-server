@@ -20,7 +20,6 @@ thread_consumer(void *arg)
   int s;
 
   db_connect();
-  puts("Connection to database established successfully");
 
   while(1)
   {
@@ -49,9 +48,11 @@ thread_consumer(void *arg)
       data_array = g_queue_pop_tail(queue);
 
       /* for debug purpose */
-      print_AVL_data(data_array);
+      /*print_AVL_data(data_array);*/
       /*****************************/
       db_store_AVL_data_array(data_array);
+
+      printf("IMEI %s, %d data stored id db\n", data_array->imei, data_array->number_of_data);
 
       free(data_array);
     }
@@ -75,7 +76,7 @@ static void
 push_onto_queue(const client_info* client)
 {
   AVL_data_array *data_array;
-  int s;
+  int s, i;
 
   data_array = (AVL_data_array*) malloc(sizeof(AVL_data_array));
   if (!data_array)
@@ -85,9 +86,10 @@ push_onto_queue(const client_info* client)
   }
 
   parse_AVL_data_array(client->data_packet->data, data_array);
-  strcpy(data_array->imei, (char*)&client->imei->data[2]);
 
-  /*strcpy(data_array->imei, (char*)client->imei->data);*/
+  for(i = 0; i < client->imei->len-2; i++)
+    data_array->imei[i] = client->imei->data[i+2];
+  data_array->imei[i] = 0;
 
   s = pthread_mutex_lock(&mtx);
   if (s != 0)
@@ -97,27 +99,13 @@ push_onto_queue(const client_info* client)
   }
 
   g_queue_push_head(queue, data_array);
-
-  print_raw_packet(client->data_packet, client->data_packet->len);
-  
+  /*print_raw_packet(client->data_packet->data, client->data_packet->len);*/
   s = pthread_mutex_unlock(&mtx);
   if (s != 0)
   {
     logger_puts("ERROR: %s, '%s', line %d, pthread_mutex_unlock failed with code %d", __FILE__, __func__, __LINE__, s);
     fatal("%s, '%s', line %d, pthread_mutex_unlock failed with code %d", __FILE__, __func__, __LINE__, s);
   }
-
-
-
-  /* for debug purpose */
-  /*int i;
-  printf("IMEI: ");
-  for(i = 0; i < client->imei->len; i++)
-  {
-    printf("%c", client->imei->data[i]);
-  }
-  printf("\n");*/
-
 }
 /***********************************************************/
 
@@ -260,7 +248,6 @@ serv_read_cb(struct bufferevent *bev, void *ctx)
         fatal("%s, '%s', line %d, couldn't write data to bufferevent", __FILE__, __func__, __LINE__);
       }
       client->state = WAIT_NUM_RECIEVED_DATA_TOBE_SENT;
-      /*logger_puts("in WAIT_NUM_RECIEVED_DATA_TOBE_SENT state");*/
     }
   }
 }
@@ -304,9 +291,6 @@ serv_write_cb(struct bufferevent *bev, void *ctx)
 static void
 accept_conn_cb(struct evconnlistener *listener, evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx)
 {
-  /*logger_puts("A new connection established from");*/
-  printf("A new connection established\n");
-
   struct event_base *base = evconnlistener_get_base(listener);
   struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
 

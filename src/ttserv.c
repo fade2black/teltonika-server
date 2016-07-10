@@ -11,7 +11,7 @@ struct event_base *base;
 static GQueue* queue;
 static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t cond_consumer = PTHREAD_COND_INITIALIZER;
-
+static max_queue_size;
 
 static void*
 thread_consumer(void *arg)
@@ -96,6 +96,13 @@ push_onto_queue(const client_info* client)
   }
 
   g_queue_push_head(queue, data_array);
+
+  if (max_queue_size < queue->length)
+  {
+    max_queue_size = queue->length;
+    logger_puts("Queue max size: %d", max_queue_size);
+  }
+
   /*print_raw_packet(client->data_packet->data, client->data_packet->len);*/
   s = pthread_mutex_unlock(&mtx);
   if (s != 0)
@@ -105,7 +112,6 @@ push_onto_queue(const client_info* client)
   }
 }
 /***********************************************************/
-
 
 
 /* if all bytes of imei are read then return TRUE else return FALSE */
@@ -183,13 +189,28 @@ process_data_packet(const unsigned char* data, size_t nbytes, client_info* clien
 static void
 serv_event_cb(struct bufferevent *bev, short events, void *ctx)
 {
+  int err;
+
   if (events & BEV_EVENT_ERROR)
   {
-    logger_puts("ERROR: %s, '%s', line %d, bufferevent error", __FILE__, __func__, __LINE__);
-    fatal("Error from bufferevent");
+    err = EVUTIL_SOCKET_ERROR();
+    logger_puts("ERROR: %s, '%s', line %d, %s", __FILE__, __func__, __LINE__, evutil_socket_error_to_string(err));
+    printf("ERROR: %s, '%s', line %d, %s\n", __FILE__, __func__, __LINE__, evutil_socket_error_to_string(err));
   }
-  if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR))
+  else if (events & BEV_EVENT_TIMEOUT)
+  {
+    logger_puts("ERROR: %s, '%s', line %d, a timeout expired on the bufferevent", __FILE__, __func__, __LINE__);
+    printf("ERROR: %s, '%s', line %d, a timeout expired on the bufferevent", __FILE__, __func__, __LINE__);
+  }
+
+  if (events & (BEV_EVENT_ERROR | BEV_EVENT_TIMEOUT))
+  {
+    remove_client(bev);
+    bufferevent_disable(bev, EV_READ | EV_WRITE);
+    bufferevent_setcb(bev, NULL, NULL, NULL, NULL);
     bufferevent_free(bev);
+  }
+
 }
 /****************************************************************************/
 

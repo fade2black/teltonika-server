@@ -3,7 +3,6 @@
 
 #define PORT 1975
 #define INPUT_BUFSIZE 2048
-#define MAXCLIENTS 10000
 
 #define BUF_SIZE 500
 
